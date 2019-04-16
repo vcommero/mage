@@ -397,7 +397,11 @@ public abstract class AbilityImpl implements Ability {
             game.informPlayers(controller.getLogName() + " announces a value of " + xValue + " for " + variableManaCost.getText());
         }
         activated = true;
-        // fire if tapped for mana (may only fire now because else costs of ability itself can be payed with mana of abilities that trigger for that event
+
+        // TAPPED_FOR_MANA raised:
+        // * pre-defined mana types: here
+        // * user defined mana types: in checkToFirePossibleEvents (on mana effect apply)
+        // fire if tapped for mana (may only fire now because else costs of ability itself can be payed with mana of abilities that trigger for that event)
         if (this.getAbilityType() == AbilityType.MANA) {
             for (Cost cost : costs) {
                 if (cost instanceof TapSourceCost) {

@@ -55,12 +55,7 @@ class RiteOfFlameManaEffect extends ManaEffect {
 
     @Override
     public boolean apply(Game game, Ability source) {
-        Player controller = game.getPlayer(source.getControllerId());
-        if (controller != null) {
-            controller.getManaPool().addMana(getMana(game, source), game, source);
-            return true;
-        }
-        return false;
+        return tryToAddManaToPool(game, source, false);
     }
 
     @Override

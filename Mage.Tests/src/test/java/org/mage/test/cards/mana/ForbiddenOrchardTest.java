@@ -20,10 +20,15 @@ public class ForbiddenOrchardTest extends CardTestPlayerBase {
         addCard(Zone.BATTLEFIELD, playerA, "Forbidden Orchard", 1);
         addCard(Zone.HAND, playerA, "Silvercoat Lion", 1);
 
+        activateManaAbility(1, PhaseStep.PRECOMBAT_MAIN, playerA, "{T}: Add one mana of any color");
         castSpell(1, PhaseStep.PRECOMBAT_MAIN, playerA, "Silvercoat Lion");
+        setChoice(playerA, "White");
+        addTarget(playerA, playerB);
 
+        setStrictChooseMode(true);
         setStopAt(1, PhaseStep.BEGIN_COMBAT);
         execute();
+        assertAllCommandsUsed();
 
         assertPermanentCount(playerA, "Silvercoat Lion", 1);
 

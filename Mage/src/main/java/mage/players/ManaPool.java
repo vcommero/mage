@@ -382,11 +382,11 @@ public class ManaPool implements Serializable {
         return m;
     }
 
-    public void addMana(Mana manaToAdd, Game game, Ability source) {
-        addMana(manaToAdd, game, source, false);
+    public boolean addMana(Mana manaToAdd, Game game, Ability source) {
+        return addMana(manaToAdd, game, source, false);
     }
 
-    public void addMana(Mana manaToAdd, Game game, Ability source, boolean emptyOnTurnsEnd) {
+    public boolean addMana(Mana manaToAdd, Game game, Ability source, boolean emptyOnTurnsEnd) {
         if (manaToAdd != null) {
             Mana mana = manaToAdd.copy();
             if (!game.replaceEvent(new ManaEvent(EventType.ADD_MANA, source.getId(), source.getSourceId(), playerId, mana))) {
@@ -409,7 +409,10 @@ public class ManaPool implements Serializable {
                 manaEvent.setData(mana.toString());
                 game.fireEvent(manaEvent);
             }
+            return true;
         }
+
+        return false;
     }
 
     public List<ConditionalMana> getConditionalMana() {

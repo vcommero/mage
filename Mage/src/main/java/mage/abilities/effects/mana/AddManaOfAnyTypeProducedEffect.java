@@ -29,13 +29,8 @@ public class AddManaOfAnyTypeProducedEffect extends ManaEffect {
     public boolean apply(Game game, Ability source) {
         Permanent permanent = game.getPermanent(getTargetPointer().getFirst(game, source));
         if (permanent != null) {
-            Player targetController = game.getPlayer(permanent.getControllerId());
-            if (targetController == null) {
-                return false;
-            }
-            checkToFirePossibleEvents(getMana(game, source), game, source);
-            targetController.getManaPool().addMana(getMana(game, source), game, source);
-            return true;
+            Player controller = game.getPlayer(permanent.getControllerId());
+            return tryToAddManaToPool(game, source, controller, true);
         }
         return false;
     }

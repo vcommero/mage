@@ -32,12 +32,8 @@ public class AddManaAnyColorAttachedControllerEffect extends ManaEffect {
         if (enchantment != null) {
             Permanent permanentattachedTo = game.getPermanent(enchantment.getAttachedTo());
             if (permanentattachedTo != null) {
-                Player player = game.getPlayer(permanentattachedTo.getControllerId());
-                if (player != null) {
-                    checkToFirePossibleEvents(getMana(game, source), game, source);
-                    player.getManaPool().addMana(getMana(game, source), game, source);
-                    return true;
-                }
+                Player controller = game.getPlayer(permanentattachedTo.getControllerId());
+                return tryToAddManaToPool(game, source, controller, true);
             }
         }
         return false;

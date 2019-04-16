@@ -115,8 +115,12 @@ class ManaScrewEffect extends BasicManaEffect {
     @Override
     public boolean apply(Game game, Ability source) {
         Player player = game.getPlayer(source.getControllerId());
-        if (player != null && player.flipCoin(source, game, true)) {
-            player.getManaPool().addMana(getMana(game, source), game, source);
+        if (player == null) {
+            return false;
+        }
+
+        if (player.flipCoin(source, game, true)) {
+            return tryToAddManaToPool(game, source, player, false); // TODO: is that produce mana?
         }
         return true;
     }

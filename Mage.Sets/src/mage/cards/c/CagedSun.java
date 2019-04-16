@@ -142,11 +142,7 @@ class CagedSunEffect extends ManaEffect {
 
     @Override
     public boolean apply(Game game, Ability source) {
-        Player player = game.getPlayer(source.getControllerId());
-        if (player != null) {
-            player.getManaPool().addMana(getMana(game, source), game, source);
-        }
-        return true;
+        return tryToAddManaToPool(game, source, false);
     }
 
     @Override

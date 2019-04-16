@@ -74,9 +74,7 @@ class SacellumGodspeakerEffect extends ManaEffect {
     public boolean apply(Game game, Ability source) {
         TargetCardInHand target = new TargetCardInHand(0, Integer.MAX_VALUE, filter);
         if (target.choose(Outcome.Benefit, source.getControllerId(), source.getSourceId(), game)) {
-            checkToFirePossibleEvents(getMana(game, source), game, source);
-            game.getPlayer(source.getControllerId()).getManaPool().addMana(getMana(game, source), game, source);
-            return true;
+            return tryToAddManaToPool(game, source);
         }
         return false;
     }

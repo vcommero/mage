@@ -182,14 +182,15 @@ class GauntletOfPowerEffectEffect2 extends ManaEffect {
     @Override
     public boolean apply(Game game, Ability source) {
         Permanent land = game.getPermanentOrLKIBattlefield(getTargetPointer().getFirst(game, source));
-        if (land != null) {
-            Player player = game.getPlayer(land.getControllerId());
-            if (player != null) {
-                player.getManaPool().addMana(getMana(game, source), game, source);
-                return true;
-            }
+        if (land == null) {
+            return false;
         }
-        return false;
+
+        Player player = game.getPlayer(land.getControllerId());
+        if (player == null) {
+            return false;
+        }
+        return tryToAddManaToPool(game, source, player, false);
     }
 
     @Override

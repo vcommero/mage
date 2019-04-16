@@ -56,12 +56,7 @@ class MadScienceFairManaEffect extends ManaEffect {
 
     @Override
     public boolean apply(Game game, Ability source) {
-        Player controller = game.getPlayer(source.getControllerId());
-        if (controller != null) {
-            checkToFirePossibleEvents(getMana(game, source), game, source);
-            controller.getManaPool().addMana(getMana(game, source), game, source);
-        }
-        return false;
+        return tryToAddManaToPool(game, source);
     }
 
     @Override

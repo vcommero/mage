@@ -13,6 +13,7 @@ import mage.constants.Outcome;
 import mage.game.Game;
 import mage.game.events.GameEvent;
 import mage.game.events.ManaEvent;
+import mage.players.Player;
 
 /**
  *
@@ -94,5 +95,23 @@ public abstract class ManaEffect extends OneShotEffect {
                 }
             }
         }
+    }
+
+    public boolean tryToAddManaToPool(Game game, Ability source) {
+        return tryToAddManaToPool(game, source, true);
+    }
+
+    public boolean tryToAddManaToPool(Game game, Ability source, boolean fireEventToDecideManaType) {
+        return tryToAddManaToPool(game, source, game.getPlayer(source.getControllerId()), fireEventToDecideManaType);
+    }
+
+    public boolean tryToAddManaToPool(Game game, Ability source, Player player, boolean fireEventToDecideManaType) {
+        if (player != null) {
+            if (fireEventToDecideManaType) {
+                checkToFirePossibleEvents(getMana(game, source), game, source);
+            }
+            return player.getManaPool().addMana(getMana(game, source), game, source);
+        }
+        return false;
     }
 }

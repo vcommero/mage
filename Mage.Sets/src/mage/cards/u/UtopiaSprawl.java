@@ -107,10 +107,7 @@ class UtopiaSprawlEffect extends ManaEffect {
             Permanent land = game.getPermanent(enchantment.getAttachedTo());
             if (land != null) {
                 Player player = game.getPlayer(land.getControllerId());
-                if (player != null) {
-                    player.getManaPool().addMana(getMana(game, source), game, source);
-                    return true;
-                }
+                return tryToAddManaToPool(game, source, player, false);
             }
         }
         return false;
