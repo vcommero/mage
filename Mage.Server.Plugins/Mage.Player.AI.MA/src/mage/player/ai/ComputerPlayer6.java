@@ -1,14 +1,17 @@
 package mage.player.ai;
 
 import mage.MageObject;
+import mage.Mana;
 import mage.abilities.Ability;
 import mage.abilities.ActivatedAbility;
 import mage.abilities.SpellAbility;
 import mage.abilities.StaticAbility;
 import mage.abilities.common.PassAbility;
+import mage.abilities.costs.mana.GenericManaCost;
 import mage.abilities.effects.Effect;
 import mage.abilities.effects.SearchEffect;
 import mage.abilities.keyword.*;
+import mage.abilities.mana.ManaAbility;
 import mage.cards.Cards;
 import mage.choices.Choice;
 import mage.constants.Outcome;
@@ -21,6 +24,7 @@ import mage.game.events.GameEvent;
 import mage.game.permanent.Permanent;
 import mage.game.stack.StackAbility;
 import mage.game.stack.StackObject;
+import mage.player.ai.GameStateEvaluator2.PlayerEvaluateScore;
 import mage.player.ai.ma.optimizers.TreeOptimizer;
 import mage.player.ai.ma.optimizers.impl.*;
 import mage.player.ai.util.CombatInfo;
@@ -34,9 +38,11 @@ import mage.util.RandomUtil;
 import mage.util.ThreadUtils;
 import mage.util.XmageThreadFactory;
 import org.apache.log4j.Logger;
+import org.apache.log4j.Priority;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -198,7 +204,7 @@ public class ComputerPlayer6 extends ComputerPlayer {
     protected int addActions(SimulationNode2 node, int depth, int alpha, int beta) {
         boolean stepFinished = false;
         int val;
-        if (logger.isTraceEnabled()
+        if (true //logger.isTraceEnabled()
                 && node != null
                 && node.getAbilities() != null
                 && !node.getAbilities().toString().equals("[Pass]")) {
@@ -238,7 +244,7 @@ public class ComputerPlayer6 extends ComputerPlayer {
                     sb.append(logNode.getAbilities() != null ? logNode.getAbilities().toString() : "null").append(", ");
                 }
                 sb.append(')');
-                logger.debug(sb);
+                logger.trace(sb);
             }
             val = minimaxAB(node, depth - 1, alpha, beta);
         } else {
@@ -285,7 +291,7 @@ public class ComputerPlayer6 extends ComputerPlayer {
             }
         }
         node.setScore(val);
-        logger.trace("returning -- score: " + val + " depth:" + depth + " step:" + game.getTurnStepType() + " for player:" + game.getPlayer(node.getPlayerId()).getName());
+        //logger.warn("returning -- score: " + val + " depth:" + depth + " step:" + game.getTurnStepType() + " for player:" + game.getPlayer(node.getPlayerId()).getName());
         return val;
 
     }
@@ -328,20 +334,44 @@ public class ComputerPlayer6 extends ComputerPlayer {
     protected int minimaxAB(SimulationNode2 node, int depth, int alpha, int beta) {
         logger.trace("Sim minimaxAB [" + depth + "] -- a: " + alpha + " b: " + beta + " <" + (node != null ? node.getScore() : "null") + '>');
         UUID currentPlayerId = node.getGame().getPlayerList().get();
+        boolean isMaximizingPlayer = currentPlayerId.equals(playerId);
         SimulationNode2 bestChild = null;
+        
+        // Early game-ending recognition
+        if (node.getGame().checkIfGameIsOver()) {
+            if (!node.getGame().isADraw()) {
+            	logger.warn("minimaxAB --- sim game ended. breaking.");
+                return node.getGame().getPlayer(playerId).hasWon() ? 
+                    GameStateEvaluator2.WIN_GAME_SCORE : 
+                    GameStateEvaluator2.LOSE_GAME_SCORE;
+            }
+        }
+        
+        if (logger.isEnabledFor(Priority.WARN)) {
+	        StringBuilder sb = new StringBuilder("minimaxAB --- node scores: ");
+	        node.getChildren().forEach(e -> sb.append(e.getScore()).append(", "));
+	        logger.trace(sb);
+        }
+        
         for (SimulationNode2 child : node.getChildren()) {
-            Combat _combat = child.getCombat();
+        	// Aggressive alpha-beta cutoff
             if (alpha >= beta) {
+            	logger.debug("Alpha-beta cutoff at depth " + depth);
                 break;
             }
+            
             if (SimulationNode2.nodeCount > MAX_SIMULATED_NODES_PER_ERROR) {
                 throw new IllegalStateException("AI ERROR: too much nodes (possible actions)");
             }
             if (SimulationNode2.nodeCount > maxNodes) {
                 break;
             }
+            
+            Combat _combat = child.getCombat();
+            
             int val = addActions(child, depth - 1, alpha, beta);
-            if (!currentPlayerId.equals(playerId)) {
+            
+            if (!isMaximizingPlayer) {
                 if (val < beta) {
                     beta = val;
                     bestChild = child;
@@ -349,10 +379,15 @@ public class ComputerPlayer6 extends ComputerPlayer {
                         node.setCombat(_combat);
                         bestChild.setCombat(_combat);
                     }
+                    // Fail-soft beta cutoff
+                    if (beta <= alpha) {
+                        break;
+                    }
                 }
-                // no need to check other actions
-                if (val == GameStateEvaluator2.LOSE_GAME_SCORE) {
+                // Immediate cutoff for losing positions. No need to check other actions
+                if (val <= GameStateEvaluator2.LOSE_GAME_SCORE) {
                     logger.debug("lose - break");
+                    beta = val;
                     break;
                 }
             } else {
@@ -363,10 +398,15 @@ public class ComputerPlayer6 extends ComputerPlayer {
                         node.setCombat(_combat);
                         bestChild.setCombat(_combat);
                     }
+                    // Fail-soft alpha cutoff
+                    if (beta <= alpha) {
+                        break;
+                    }
                 }
-                // no need to check other actions
-                if (val == GameStateEvaluator2.WIN_GAME_SCORE) {
+                // Immediate cutoff for winning positions. No need to check other actions
+                if (val >= GameStateEvaluator2.WIN_GAME_SCORE) {
                     logger.debug("win - break");
+                    alpha = val;
                     break;
                 }
             }
@@ -375,11 +415,7 @@ public class ComputerPlayer6 extends ComputerPlayer {
         if (bestChild != null) {
             node.children.add(bestChild);
         }
-        if (!currentPlayerId.equals(playerId)) {
-            return beta;
-        } else {
-            return alpha;
-        }
+        return isMaximizingPlayer ? alpha : beta;
     }
 
     protected SearchEffect getSearchEffect(StackAbility ability) {
@@ -465,6 +501,15 @@ public class ComputerPlayer6 extends ComputerPlayer {
         return 0;
     }
 
+    /**
+     * Simulates the player's actions when passed priority
+     * @param node
+     * @param game
+     * @param depth
+     * @param alpha
+     * @param beta
+     * @return
+     */
     protected int simulatePriority(SimulationNode2 node, Game game, int depth, int alpha, int beta) {
         if (!COMPUTER_DISABLE_TIMEOUT_IN_GAME_SIMULATIONS
                 && Thread.interrupted()) {
@@ -708,6 +753,53 @@ public class ComputerPlayer6 extends ComputerPlayer {
         }
     }
 
+    protected List<ActivatedAbility> getPlayableAbilities(Game game) {
+        List<ActivatedAbility> playables = getPlayable(game, true);
+        playables.add(new PassAbility());
+        return playables;
+    }
+
+    public List<Ability> getPlayableAbilityList(Game game) {
+        List<Ability> all = new ArrayList<>();
+        List<ActivatedAbility> playables = getPlayableAbilities(game);
+        for (ActivatedAbility ability : playables) {
+            List<Ability> options = game.getPlayer(playerId).getPlayableOptions(ability, game);
+            if (options.isEmpty()) {
+                if (!ability.getManaCosts().getVariableCosts().isEmpty()) {
+                    simulateVariableCosts(ability, all, game);
+                } else {
+                    all.add(ability);
+                }
+            } else {
+                for (Ability option : options) {
+                    if (!ability.getManaCosts().getVariableCosts().isEmpty()) {
+                        simulateVariableCosts(option, all, game);
+                    } else {
+                        all.add(option);
+                    }
+                }
+            }
+        }
+        return all;
+    }
+
+    protected void simulateVariableCosts(Ability ability, List<Ability> options, Game game) {
+        int numAvailable = getAvailableManaProducers(game).size() - ability.getManaCosts().manaValue();
+        int start = 0;
+        if (!(ability instanceof SpellAbility)) {
+            //only use x=0 on spell abilities
+            if (numAvailable == 0)
+                return;
+            else
+                start = 1;
+        }
+        for (int i = start; i < numAvailable; i++) {
+            Ability newAbility = ability.copy();
+            newAbility.addManaCostsToPay(new GenericManaCost(i));
+            options.add(newAbility);
+        }
+    }
+    
     protected String getAbilityAndSourceInfo(Game game, Ability ability, boolean showTargets) {
         // ability
         // TODO: add modal info
