@@ -108,6 +108,7 @@ public final class DuskmournHouseOfHorror extends ExpansionSet {
         cards.add(new SetCardInfo("Glimmerburst", 62, Rarity.COMMON, mage.cards.g.Glimmerburst.class));
         cards.add(new SetCardInfo("Glimmerlight", 249, Rarity.COMMON, mage.cards.g.Glimmerlight.class));
         cards.add(new SetCardInfo("Gloomlake Verge", 260, Rarity.RARE, mage.cards.g.GloomlakeVerge.class));
+        cards.add(new SetCardInfo("Grab the Prize", 138, Rarity.COMMON, mage.cards.g.GrabThePrize.class));
         cards.add(new SetCardInfo("Grasping Longneck", 180, Rarity.COMMON, mage.cards.g.GraspingLongneck.class));
         cards.add(new SetCardInfo("Gremlin Tamer", 215, Rarity.UNCOMMON, mage.cards.g.GremlinTamer.class));
         cards.add(new SetCardInfo("Grievous Wound", 102, Rarity.RARE, mage.cards.g.GrievousWound.class));
@@ -124,6 +125,7 @@ public final class DuskmournHouseOfHorror extends ExpansionSet {
         cards.add(new SetCardInfo("Innocuous Rat", 103, Rarity.COMMON, mage.cards.i.InnocuousRat.class));
         cards.add(new SetCardInfo("Insidious Fungus", 186, Rarity.UNCOMMON, mage.cards.i.InsidiousFungus.class));
         cards.add(new SetCardInfo("Intruding Soulrager", 218, Rarity.UNCOMMON, mage.cards.i.IntrudingSoulrager.class));
+        cards.add(new SetCardInfo("Irreverent Gremlin", 142, Rarity.UNCOMMON, mage.cards.i.IrreverentGremlin.class));
         cards.add(new SetCardInfo("Island", 273, Rarity.LAND, mage.cards.basiclands.Island.class, FULL_ART_BFZ_VARIOUS));
         cards.add(new SetCardInfo("Jump Scare", 17, Rarity.COMMON, mage.cards.j.JumpScare.class));
         cards.add(new SetCardInfo("Killer's Mask", 104, Rarity.UNCOMMON, mage.cards.k.KillersMask.class));
@@ -134,6 +136,8 @@ public final class DuskmournHouseOfHorror extends ExpansionSet {
         cards.add(new SetCardInfo("Leyline of Mutation", 188, Rarity.RARE, mage.cards.l.LeylineOfMutation.class));
         cards.add(new SetCardInfo("Leyline of Resonance", 143, Rarity.RARE, mage.cards.l.LeylineOfResonance.class));
         cards.add(new SetCardInfo("Leyline of the Void", 106, Rarity.RARE, mage.cards.l.LeylineOfTheVoid.class));
+        cards.add(new SetCardInfo("Leyline of Transformation", 63, Rarity.RARE, mage.cards.l.LeylineOfTransformation.class, NON_FULL_USE_VARIOUS));
+        cards.add(new SetCardInfo("Leyline of Transformation", 372, Rarity.RARE, mage.cards.l.LeylineOfTransformation.class, NON_FULL_USE_VARIOUS));
         cards.add(new SetCardInfo("Lionheart Glimmer", 19, Rarity.UNCOMMON, mage.cards.l.LionheartGlimmer.class));
         cards.add(new SetCardInfo("Live or Die", 107, Rarity.UNCOMMON, mage.cards.l.LiveOrDie.class));
         cards.add(new SetCardInfo("Living Phone", 20, Rarity.COMMON, mage.cards.l.LivingPhone.class));
@@ -222,6 +226,9 @@ public final class DuskmournHouseOfHorror extends ExpansionSet {
         cards.add(new SetCardInfo("Unidentified Hovership", 37, Rarity.RARE, mage.cards.u.UnidentifiedHovership.class));
         cards.add(new SetCardInfo("Unnerving Grasp", 80, Rarity.UNCOMMON, mage.cards.u.UnnervingGrasp.class));
         cards.add(new SetCardInfo("Unsettling Twins", 38, Rarity.COMMON, mage.cards.u.UnsettlingTwins.class));
+        cards.add(new SetCardInfo("Unstoppable Slasher", 119, Rarity.RARE, mage.cards.u.UnstoppableSlasher.class, NON_FULL_USE_VARIOUS));
+        cards.add(new SetCardInfo("Unstoppable Slasher", 294, Rarity.RARE, mage.cards.u.UnstoppableSlasher.class, NON_FULL_USE_VARIOUS));
+        cards.add(new SetCardInfo("Unstoppable Slasher", 312, Rarity.RARE, mage.cards.u.UnstoppableSlasher.class, NON_FULL_USE_VARIOUS));
         cards.add(new SetCardInfo("Untimely Malfunction", 161, Rarity.UNCOMMON, mage.cards.u.UntimelyMalfunction.class));
         cards.add(new SetCardInfo("Unwanted Remake", 39, Rarity.UNCOMMON, mage.cards.u.UnwantedRemake.class));
         cards.add(new SetCardInfo("Unwilling Vessel", 81, Rarity.UNCOMMON, mage.cards.u.UnwillingVessel.class));

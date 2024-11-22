@@ -2,6 +2,7 @@ package mage.abilities;
 
 import mage.MageIdentifier;
 import mage.MageObject;
+import mage.Mana;
 import mage.abilities.common.EntersBattlefieldAbility;
 import mage.abilities.condition.Condition;
 import mage.abilities.costs.*;
@@ -23,6 +24,7 @@ import mage.choices.Choice;
 import mage.choices.ChoiceHintType;
 import mage.choices.ChoiceImpl;
 import mage.constants.*;
+import mage.filter.FilterMana;
 import mage.game.Game;
 import mage.game.command.Dungeon;
 import mage.game.command.Emblem;
@@ -328,7 +330,14 @@ public abstract class AbilityImpl implements Ability {
         VariableManaCost variableManaCost = handleManaXCosts(game, noMana, controller);
         String announceString = handleOtherXCosts(game, controller);
 
-        handlePhyrexianManaCosts(game, controller);
+        // 601.2b If a cost that will be paid as the spell is being cast includes
+        // Phyrexian mana symbols, the player announces whether they intend to pay 2
+        // life or the corresponding colored mana cost for each of those symbols.
+        AbilityImpl.handlePhyrexianCosts(game, this, this, this.getManaCostsToPay());
+
+        // 20241022 - 601.2b
+        // Not yet included in 601.2b but this is where it will be
+        handleChooseCostTargets(game, controller);
 
         /* 20130201 - 601.2b
          * If the spell is modal the player announces the mode choice (see rule 700.2).
@@ -627,24 +636,86 @@ public abstract class AbilityImpl implements Ability {
     }
 
     /**
-     * 601.2b If a cost that will be paid as the spell is being cast includes
-     * Phyrexian mana symbols, the player announces whether they intend to pay 2
-     * life or the corresponding colored mana cost for each of those symbols.
+     * Prepare Phyrexian costs (choose life to pay instead mana)
+     * Must be called on cast announce before any cost modifications
+     *
+     * @param abilityToPay   paying ability (will receive life cost)
+     * @param manaCostsToPay paying cost (will remove P and replace it by mana or nothing)
      */
-    private void handlePhyrexianManaCosts(Game game, Player controller) {
-        Iterator<ManaCost> costIterator = getManaCostsToPay().iterator();
+    public static void handlePhyrexianCosts(Game game, Ability source, Ability abilityToPay, ManaCosts manaCostsToPay) {
+        Player controller = game.getPlayer(source.getControllerId());
+        if (controller == null) {
+            return;
+        }
+
+        Iterator<ManaCost> costIterator = manaCostsToPay.iterator();
         while (costIterator.hasNext()) {
             ManaCost cost = costIterator.next();
-
             if (!cost.isPhyrexian()) {
                 continue;
             }
             PayLifeCost payLifeCost = new PayLifeCost(2);
-            if (payLifeCost.canPay(this, this, controller.getId(), game)
-                    && controller.chooseUse(Outcome.LoseLife, "Pay 2 life instead of " + cost.getText().replace("/P", "") + '?', this, game)) {
+            if (payLifeCost.canPay(abilityToPay, source, controller.getId(), game)
+                    && controller.chooseUse(Outcome.LoseLife, "Pay 2 life instead of " + cost.getText().replace("/P", "")
+                    + " (phyrexian cost)?", source, game)) {
                 costIterator.remove();
-                addCost(payLifeCost);
-                getManaCostsToPay().incrPhyrexianPaid();
+                abilityToPay.addCost(payLifeCost);
+                manaCostsToPay.incrPhyrexianPaid(); // mark it as real phyrexian pay, e.g. for planeswalkers with Compleated ability
+            }
+        }
+    }
+
+    /**
+     * Prepare and pay Phyrexian style effects like replace mana by life
+     * Must be called after original Phyrexian mana processing and after cost modifications, e.g. on payment
+     *
+     * @param abilityToPay   paying ability (will receive life cost)
+     * @param manaCostsToPay paying cost (will replace mana by nothing)
+     */
+    public static void handlePhyrexianLikeEffects(Game game, Ability source, Ability abilityToPay, ManaCosts manaCostsToPay) {
+        Player controller = game.getPlayer(source.getControllerId());
+        if (controller == null) {
+            return;
+        }
+
+        // If a cost contains a mana symbol that may be paid in multiple ways, such as {B/R}, {B/P}, or {2/B},
+        // you choose how you'll pay it before you do so. If you choose to pay {B} this way, K'rrik's ability allows
+        // you to pay life rather than pay that mana.
+        // (2019-08-23)
+        FilterMana phyrexianColors = controller.getPhyrexianColors();
+        if (controller.getPhyrexianColors() == null) {
+            return;
+        }
+        Iterator<ManaCost> costIterator = manaCostsToPay.iterator();
+        while (costIterator.hasNext()) {
+            ManaCost cost = costIterator.next();
+            Mana mana = cost.getMana();
+            if ((!phyrexianColors.isWhite() || mana.getWhite() <= 0)
+                    && (!phyrexianColors.isBlue() || mana.getBlue() <= 0)
+                    && (!phyrexianColors.isBlack() || mana.getBlack() <= 0)
+                    && (!phyrexianColors.isRed() || mana.getRed() <= 0)
+                    && (!phyrexianColors.isGreen() || mana.getGreen() <= 0)) {
+                continue;
+            }
+            PayLifeCost payLifeCost = new PayLifeCost(2);
+            if (payLifeCost.canPay(abilityToPay, source, controller.getId(), game)
+                    && controller.chooseUse(Outcome.LoseLife, "Pay 2 life instead of " + cost.getText().replace("/P", "")
+                    + " (pay life cost)?", source, game)) {
+                if (payLifeCost.pay(abilityToPay, game, source, controller.getId(), false, null)) {
+                    costIterator.remove();
+                    abilityToPay.addCost(payLifeCost);
+                }
+            }
+        }
+    }
+
+    /**
+     * 601.2b Choose targets for costs that have to be chosen early.
+     */
+    private void handleChooseCostTargets(Game game, Player controller) {
+        for (Cost cost : getCosts()) {
+            if (cost instanceof EarlyTargetCost && cost.getTargets().isEmpty()) {
+                ((EarlyTargetCost) cost).chooseTarget(game, this, controller);
             }
         }
     }

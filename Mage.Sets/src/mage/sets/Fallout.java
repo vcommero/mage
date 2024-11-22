@@ -153,6 +153,7 @@ public final class Fallout extends ExpansionSet {
         cards.add(new SetCardInfo("Glimmer of Genius", 176, Rarity.UNCOMMON, mage.cards.g.GlimmerOfGenius.class));
         cards.add(new SetCardInfo("Glowing One", 76, Rarity.UNCOMMON, mage.cards.g.GlowingOne.class));
         cards.add(new SetCardInfo("Grave Titan", 346, Rarity.MYTHIC, mage.cards.g.GraveTitan.class));
+        cards.add(new SetCardInfo("Grim Reaper's Sprint", 58, Rarity.RARE, mage.cards.g.GrimReapersSprint.class));
         cards.add(new SetCardInfo("Guardian Project", 199, Rarity.RARE, mage.cards.g.GuardianProject.class));
         cards.add(new SetCardInfo("Gunner Conscript", 77, Rarity.UNCOMMON, mage.cards.g.GunnerConscript.class));
         cards.add(new SetCardInfo("HELIOS One", 149, Rarity.RARE, mage.cards.h.HELIOSOne.class));
@@ -250,6 +251,7 @@ public final class Fallout extends ExpansionSet {
         cards.add(new SetCardInfo("One with the Machine", 179, Rarity.RARE, mage.cards.o.OneWithTheMachine.class));
         cards.add(new SetCardInfo("Open the Vaults", 168, Rarity.RARE, mage.cards.o.OpenTheVaults.class));
         cards.add(new SetCardInfo("Opulent Palace", 278, Rarity.UNCOMMON, mage.cards.o.OpulentPalace.class));
+        cards.add(new SetCardInfo("Overencumbered", 18, Rarity.RARE, mage.cards.o.Overencumbered.class));
         cards.add(new SetCardInfo("Overflowing Basin", 152, Rarity.RARE, mage.cards.o.OverflowingBasin.class));
         cards.add(new SetCardInfo("Overseer of Vault 76", 19, Rarity.RARE, mage.cards.o.OverseerOfVault76.class, NON_FULL_USE_VARIOUS));
         cards.add(new SetCardInfo("Overseer of Vault 76", 368, Rarity.RARE, mage.cards.o.OverseerOfVault76.class, NON_FULL_USE_VARIOUS));
