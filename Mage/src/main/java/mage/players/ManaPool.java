@@ -9,6 +9,7 @@ import mage.abilities.costs.Cost;
 import mage.abilities.effects.mana.ManaEffect;
 import mage.constants.Duration;
 import mage.constants.ManaType;
+import mage.constants.PhaseStep;
 import mage.constants.TurnPhase;
 import mage.filter.Filter;
 import mage.filter.FilterMana;
@@ -41,6 +42,7 @@ public class ManaPool implements Serializable {
     // empty mana pool effects
     private final Set<ManaType> doNotEmptyManaTypes = new HashSet<>(); // keep some colors
     private boolean manaBecomesBlack = false; // replace all pool by black
+    private boolean manaBecomesRed = false; // replace all pool by red
     private boolean manaBecomesColorless = false; // replace all pool by colorless
 
     private static final class ConditionalManaInfo {
@@ -75,6 +77,7 @@ public class ManaPool implements Serializable {
         }
         this.doNotEmptyManaTypes.addAll(pool.doNotEmptyManaTypes);
         this.manaBecomesBlack = pool.manaBecomesBlack;
+        this.manaBecomesRed = pool.manaBecomesRed;
         this.manaBecomesColorless = pool.manaBecomesColorless;
     }
 
@@ -235,6 +238,7 @@ public class ManaPool implements Serializable {
     public void clearEmptyManaPoolRules() {
         doNotEmptyManaTypes.clear();
         this.manaBecomesBlack = false;
+        this.manaBecomesRed = false;
         this.manaBecomesColorless = false;
     }
 
@@ -244,6 +248,10 @@ public class ManaPool implements Serializable {
 
     public void setManaBecomesBlack(boolean manaBecomesBlack) {
         this.manaBecomesBlack = manaBecomesBlack;
+    }
+
+    public void setManaBecomesRed(boolean manaBecomesRed) {
+        this.manaBecomesRed = manaBecomesRed;
     }
 
     public void setManaBecomesColorless(boolean manaBecomesColorless) {
@@ -264,6 +272,9 @@ public class ManaPool implements Serializable {
                     continue;
                 }
                 if (manaBecomesBlack) {
+                    continue;
+                }
+                if (manaBecomesRed) {
                     continue;
                 }
                 if (manaBecomesColorless) {
@@ -302,14 +313,30 @@ public class ManaPool implements Serializable {
     }
 
     private int emptyItem(ManaPoolItem item, Emptiable toEmpty, Game game, ManaType manaType) {
-        if (item.getDuration() == Duration.EndOfTurn
-                && game.getTurnPhaseType() != TurnPhase.END) {
-            return 0;
+        switch (item.getDuration()) {
+            case EndOfTurn:
+                if (game.getTurnPhaseType() != TurnPhase.END) {
+                    return 0;
+                }
+                break;
+            case EndOfCombat:
+                if (game.getTurnPhaseType() != TurnPhase.COMBAT
+                        || game.getTurnStepType() != PhaseStep.END_COMBAT) {
+                    return 0;
+                }
         }
+
+        // TODO: This should be reimplemented as replacement effects instead, so you can choose which applies.
         if (manaBecomesBlack) {
             int amount = toEmpty.get(manaType);
             toEmpty.clear(manaType);
             toEmpty.add(ManaType.BLACK, amount);
+            return 0;
+        }
+        if (manaBecomesRed) {
+            int amount = toEmpty.get(manaType);
+            toEmpty.clear(manaType);
+            toEmpty.add(ManaType.RED, amount);
             return 0;
         }
         if (manaBecomesColorless) {
@@ -366,6 +393,10 @@ public class ManaPool implements Serializable {
     }
 
     public void addMana(Mana manaToAdd, Game game, Ability source, boolean dontLoseUntilEOT) {
+        addMana(manaToAdd, game, source, dontLoseUntilEOT ? Duration.EndOfTurn : null);
+    }
+
+    public void addMana(Mana manaToAdd, Game game, Ability source, Duration duration) {
         if (manaToAdd != null) {
             Mana mana = manaToAdd.copy();
             if (!game.replaceEvent(new ManaEvent(EventType.ADD_MANA, source.getId(), source, playerId, mana))) {
@@ -376,8 +407,8 @@ public class ManaPool implements Serializable {
                             source.getSourceObject(game),
                             conditionalMana.getManaProducerOriginalId() != null ? conditionalMana.getManaProducerOriginalId() : source.getOriginalId()
                     );
-                    if (dontLoseUntilEOT) {
-                        item.setDuration(Duration.EndOfTurn);
+                    if (duration != null) {
+                        item.setDuration(duration);
                     }
                     this.manaItems.add(item);
                 } else {
@@ -392,8 +423,8 @@ public class ManaPool implements Serializable {
                             source.getOriginalId(),
                             mana.getFlag()
                     );
-                    if (dontLoseUntilEOT) {
-                        item.setDuration(Duration.EndOfTurn);
+                    if (duration != null) {
+                        item.setDuration(duration);
                     }
                     this.manaItems.add(item);
                 }

@@ -688,6 +688,30 @@ public class GameEvent implements Serializable {
         /* rad counter life loss/gain effect
          */
         RADIATION_GAIN_LIFE,
+        /* for checking sacrifice as a cost
+         targetId   the permanent to be sacrificed
+         sourceId   of the ability
+         playerId   controller of ability
+         data       id of the ability being paid for
+         */
+        PAY_SACRIFICE_COST,
+        EARTHBENDED,
+        AIRBENDED,
+        FIREBENDED,
+        WATERBENDED,
+        /* A room permanent has a door unlocked.
+         targetId   the room permanent
+         sourceId   the unlock ability
+         playerId   the room permanent's controller
+         flag       true = left door unlocked false = right door unlocked
+         */
+        DOOR_UNLOCKED,
+        /* A room permanent has a door unlocked.
+         targetId   the room permanent
+         sourceId   the unlock ability
+         playerId   the room permanent's controller
+         */
+        ROOM_FULLY_UNLOCKED,
         // custom events - must store some unique data to track
         CUSTOM_EVENT;
 

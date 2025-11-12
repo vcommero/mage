@@ -615,7 +615,7 @@ public final class CardUtil {
     }
 
     public static UUID getExileZoneId(Game game, Ability source, int offset) {
-        return getExileZoneId(game, source.getSourceId(), source.getSourceObjectZoneChangeCounter() + offset);
+        return getExileZoneId(game, source.getSourceId(), source.getStackMomentSourceZCC() + offset);
     }
 
     public static UUID getExileZoneId(Game game, UUID objectId, int zoneChangeCounter) {
@@ -758,7 +758,7 @@ public final class CardUtil {
             MageObject sourceObject = game.getObject(source);
             if (sourceObject != null) {
                 title = sourceObject.getIdName()
-                        + " [" + source.getSourceObjectZoneChangeCounter() + "]"
+                        + " [" + source.getStackMomentSourceZCC() + "]"
                         + (textSuffix == null ? "" : " " + textSuffix);
             } else {
                 title = textSuffix == null ? "" : textSuffix;
@@ -1536,7 +1536,7 @@ public final class CardUtil {
         } else {
             chosenAbility = player.chooseAbilityForCast(cardToCast, game, true);
         }
-        boolean result = false;
+        boolean result;
         if (chosenAbility instanceof SpellAbility) {
             result = player.cast(
                     (SpellAbility) chosenAbility,
@@ -1545,6 +1545,8 @@ public final class CardUtil {
         } else if (playLand && chosenAbility instanceof PlayLandAbility) {
             Card land = game.getCard(chosenAbility.getSourceId());
             result = player.playLand(land, game, true);
+        } else {
+            result = false;
         }
         partsToCast.forEach(card -> game.getState().setValue("PlayFromNotOwnHandZone" + card.getId(), null));
         if (result && spellCastTracker != null) {
@@ -1812,7 +1814,7 @@ public final class CardUtil {
      */
     public static int getActualSourceObjectZoneChangeCounter(Game game, Ability source) {
         // current object zcc, find from source object (it can be permanent or spell on stack)
-        int zcc = source.getSourceObjectZoneChangeCounter();
+        int zcc = source.getStackMomentSourceZCC();
         if (zcc == 0) {
             // if ability is not activated yet then use current object's zcc (example: triggered etb ability checking the kicker conditional)
             zcc = game.getState().getZoneChangeCounter(source.getSourceId());

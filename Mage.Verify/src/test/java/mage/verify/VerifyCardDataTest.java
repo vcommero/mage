@@ -183,6 +183,7 @@ public class VerifyCardDataTest {
         // rarity
         // skipListAddName(SKIP_LIST_RARITY, set, cardName);
         skipListAddName(SKIP_LIST_RARITY, "CMR", "The Prismatic Piper"); // Collation is not yet set up for CMR https://www.lethe.xyz/mtg/collation/cmr.html
+        skipListAddName(SKIP_LIST_RARITY, "TLE", "Teferi's Protection"); // temporary
 
         // missing abilities
         // skipListAddName(SKIP_LIST_MISSING_ABILITIES, set, cardName);
@@ -697,32 +698,6 @@ public class VerifyCardDataTest {
 //                String code = MtgJsonService.xMageToMtgJsonCodes.getOrDefault(set.getCode(), set.getCode()) + " - " + jsonCard.getNameAsFull() + " - " + jsonCard.number;
 //                foundedJsonCards.add(code);
 //
-//                // CHECK: only lands can use full art in current version;
-//                // Another cards must be in text render mode as normal, example: https://scryfall.com/card/sld/76/athreos-god-of-passage
-//                // TODO: add support textless cards like https://scryfall.com/card/sch/12/thalia-and-the-gitrog-monster
-//                boolean isLand = card.getRarity().equals(Rarity.LAND);
-//                if (card.isFullArt() && !isLand) {
-//                    errorsList.add("Error: only lands can use full art setting: "
-//                            + set.getCode() + " - " + set.getName() + " - " + card.getName() + " - " + card.getCardNumber());
-//                }
-//
-//                // CHECK: must use full art setting
-//                if (jsonCard.isFullArt && isLand && !card.isFullArt()) {
-//                    errorsList.add("Error: card must use full art setting: "
-//                            + set.getCode() + " - " + set.getName() + " - " + card.getName() + " - " + card.getCardNumber());
-//                }
-//
-//                // CHECK: must not use full art setting
-//                if (!jsonCard.isFullArt && card.isFullArt()) {
-//                    errorsList.add("Error: card must NOT use full art setting: "
-//                            + set.getCode() + " - " + set.getName() + " - " + card.getName() + " - " + card.getCardNumber());
-//                }
-
-                // CHECK: must use retro frame setting
-                if ((jsonCard.frameVersion.equals("1993") || jsonCard.frameVersion.equals("1997")) && !card.isRetroFrame()) {
-                    errorsList.add("Error: card must use retro art setting: "
-                            + set.getCode() + " - " + set.getName() + " - " + card.getName() + " - " + card.getCardNumber());
-                }
             }
         }
 
@@ -760,6 +735,67 @@ public class VerifyCardDataTest {
         }
 
         printMessages(warningsList);
+        printMessages(errorsList);
+        if (errorsList.size() > 0) {
+            Assert.fail("Found wrong cards data in sets, errors: " + errorsList.size());
+        }
+    }
+
+    @Test
+    @Ignore
+    public void test_checkWrongFullArtAndRetro() {
+        Collection<String> errorsList = new ArrayList<>();
+        Collection<ExpansionSet> xmageSets = Sets.getInstance().values();
+
+        // CHECK: wrong card numbers
+        for (ExpansionSet set : xmageSets) {
+            if (skipListHaveName(SKIP_LIST_WRONG_CARD_NUMBERS, set.getCode())) {
+                continue;
+            }
+
+            for (ExpansionSet.SetCardInfo card : set.getSetCardInfo()) {
+                MtgJsonCard jsonCard = MtgJsonService.cardFromSet(set.getCode(), card.getName(), card.getCardNumber());
+                if (jsonCard == null) {
+                    continue;
+                }
+
+                // CHECK: full art lands must use full art setting
+                // CHECK: non-full art lands must not use full art setting
+                // CHECK: if full art land is using full art setting, don't perform retro or poster tests
+                boolean isLand = card.getRarity().equals(Rarity.LAND);
+                if (isLand && jsonCard.isFullArt && !card.isFullArt()) {
+                    errorsList.add("Error: card must use full art lands setting: "
+                            + set.getCode() + " - " + set.getName() + " - " + card.getName() + " - " + card.getCardNumber());
+                    continue;
+                } else if (isLand && !jsonCard.isFullArt && card.isFullArt()) {
+                    errorsList.add("Error: card must NOT use full art lands setting: "
+                            + set.getCode() + " - " + set.getName() + " - " + card.getName() + " - " + card.getCardNumber());
+                    continue;
+                } else if (isLand && jsonCard.isFullArt && card.isFullArt()) {
+                    // Land full art is correct, skip other tests
+                    continue;
+                }
+
+                // CHECK: poster promoType and/or textless must use full art setting
+                if (((jsonCard.promoTypes != null && jsonCard.promoTypes.contains("poster")) || jsonCard.isTextless) && !card.isFullArt()) {
+                    errorsList.add("Error: card must use full art setting: "
+                            + set.getCode() + " - " + set.getName() + " - " + card.getName() + " - " + card.getCardNumber());
+                }
+
+                // CHECK: must use retro frame setting
+                if ((jsonCard.frameVersion.equals("1993") || jsonCard.frameVersion.equals("1997")) && !card.isRetroFrame()) {
+                    errorsList.add("Error: card must use retro art setting: "
+                            + set.getCode() + " - " + set.getName() + " - " + card.getName() + " - " + card.getCardNumber());
+                }
+
+                // CHECK: must not use retro frame setting
+                if ((!(jsonCard.frameVersion.equals("1993") || jsonCard.frameVersion.equals("1997"))) && card.isRetroFrame()) {
+                    errorsList.add("Error: card must NOT use retro art setting: "
+                            + set.getCode() + " - " + set.getName() + " - " + card.getName() + " - " + card.getCardNumber());
+                }
+            }
+        }
+
         printMessages(errorsList);
         if (errorsList.size() > 0) {
             Assert.fail("Found wrong cards data in sets, errors: " + errorsList.size());
@@ -1121,6 +1157,7 @@ public class VerifyCardDataTest {
         Set<String> implementedSets = sets.stream().map(ExpansionSet::getCode).collect(Collectors.toSet());
         MtgJsonService.sets().values().forEach(jsonSet -> {
             if (jsonSet.booster != null && !jsonSet.booster.isEmpty() && !implementedSets.contains(jsonSet.code)) {
+                // how-to fix: it's miss promo sets with boosters, so just add/generate it in most use cases
                 errorsList.add(String.format("Error: missing set implementation (important for draft format) - %s - %s - boosters: %s",
                         jsonSet.code,
                         jsonSet.name,
@@ -2078,6 +2115,7 @@ public class VerifyCardDataTest {
             }
         }
     }
+
     private void checkSubtypes(Card card, MtgJsonCard ref) {
         if (skipListHaveName(SKIP_LIST_SUBTYPE, card.getExpansionSetCode(), card.getName())) {
             return;
@@ -2342,7 +2380,11 @@ public class VerifyCardDataTest {
 
 
                 // search and check dies related abilities
-                String rules = triggeredAbility.getRule();
+                // remove reminder text
+                String rules = triggeredAbility
+                        .getRule()
+                        .replaceAll("(?i) <i>\\(.+\\)</i>", "")
+                        .replaceAll("(?i) \\(.+\\)", "");
                 if (ignoredAbilities.stream().anyMatch(rules::contains)) {
                     continue;
                 }

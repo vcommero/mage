@@ -33,6 +33,7 @@ import mage.game.events.BatchEvent;
 import mage.game.events.GameEvent;
 import mage.game.events.ZoneChangeEvent;
 import mage.game.permanent.Permanent;
+import mage.game.permanent.PermanentToken;
 import mage.game.stack.Spell;
 import mage.game.stack.StackAbility;
 import mage.players.Player;
@@ -1658,8 +1659,8 @@ public abstract class AbilityImpl implements Ability {
 
     @Override
     public MageObject getSourceObjectIfItStillExists(Game game) {
-        if (getSourceObjectZoneChangeCounter() == 0
-                || getSourceObjectZoneChangeCounter() == getCurrentSourceObjectZoneChangeCounter(game)) {
+        if (getStackMomentSourceZCC() == 0
+                || getStackMomentSourceZCC() == getCurrentSourceObjectZoneChangeCounter(game)) {
             // exists or lki from battlefield
             return game.getObject(getSourceId());
         }
@@ -1688,7 +1689,7 @@ public abstract class AbilityImpl implements Ability {
     public Permanent getSourcePermanentOrLKI(Game game) {
         Permanent permanent = getSourcePermanentIfItStillExists(game);
         if (permanent == null) {
-            permanent = (Permanent) game.getLastKnownInformation(getSourceId(), Zone.BATTLEFIELD, getSourceObjectZoneChangeCounter());
+            permanent = (Permanent) game.getLastKnownInformation(getSourceId(), Zone.BATTLEFIELD, getStackMomentSourceZCC());
         }
         return permanent;
     }
@@ -1707,20 +1708,22 @@ public abstract class AbilityImpl implements Ability {
 
     private int getCurrentSourceObjectZoneChangeCounter(Game game){
         int zcc = game.getState().getZoneChangeCounter(getSourceId());
-        // TODO: Enable this, #13710
-        /*if (game.getPermanentEntering(getSourceId()) != null){
+        Permanent p = game.getPermanentEntering(getSourceId());
+        if (p != null && !(p instanceof PermanentToken)){
             // If the triggered ability triggered while the permanent is entering the battlefield
             // then add 1 zcc so that it triggers as if the permanent was already on the battlefield
             // So "Enters with counters" causes "Whenever counters are placed" to trigger with battlefield zcc
             // Particularly relevant for Sagas, which always involve both
             // Note that this does NOT apply to "As ~ ETB" effects, those still use the stack zcc
+            // TODO: JayDi doesn't like this solution, consider finding another one.
             zcc += 1;
-        }*/
+            // However, tokens don't change their zcc upon entering the battlefield, so don't add for them
+        }
         return zcc;
     }
 
     @Override
-    public int getSourceObjectZoneChangeCounter() {
+    public int getStackMomentSourceZCC() {
         return sourceObjectZoneChangeCounter;
     }
 

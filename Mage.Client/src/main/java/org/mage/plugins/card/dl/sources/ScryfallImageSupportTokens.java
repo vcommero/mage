@@ -817,10 +817,13 @@ public class ScryfallImageSupportTokens {
 
             // SLD
             put("SLD/Angel", "https://api.scryfall.com/cards/sld/1340?format=image");
+            put("SLD/Blood", "https://api.scryfall.com/cards/sld/2180?format=image");
             put("SLD/Cat/1", "https://api.scryfall.com/cards/sld/1517?format=image");
             put("SLD/Cat/2", "https://api.scryfall.com/cards/sld/27?format=image");
             put("SLD/Cat/3", "https://api.scryfall.com/cards/sld/28?format=image");
             put("SLD/Clue", "https://api.scryfall.com/cards/sld/348/en?format=image");
+            put("SLD/Cordyceps Infected/1", "https://api.scryfall.com/cards/sld/2201?format=image");
+            put("SLD/Cordyceps Infected/2", "https://api.scryfall.com/cards/sld/2206?format=image");
             put("SLD/Dog", "https://api.scryfall.com/cards/sld/1516?format=image");
             put("SLD/Egg", "https://api.scryfall.com/cards/sld/1398?format=image");
             put("SLD/Faerie Rogue/1", "https://api.scryfall.com/cards/sld/13/en?format=image");
@@ -837,6 +840,8 @@ public class ScryfallImageSupportTokens {
             put("SLD/Hydra", "https://api.scryfall.com/cards/sld/1334?format=image");
             put("SLD/Icingdeath, Frost Tongue", "https://api.scryfall.com/cards/sld/1018?format=image");
             put("SLD/Marit Lage", "https://api.scryfall.com/cards/sld/1681?format=image");
+            put("SLD/Mechtitan/1", "https://api.scryfall.com/cards/sld/1969?format=image");
+            put("SLD/Mechtitan/2", "https://api.scryfall.com/cards/sld/1969/en?format=image&face=back");
             put("SLD/Mechtitan", "https://api.scryfall.com/cards/sld/1969?format=image");
             put("SLD/Myr", "https://api.scryfall.com/cards/sld/2101?format=image");
             put("SLD/Saproling", "https://api.scryfall.com/cards/sld/1139?format=image");
@@ -2544,6 +2549,7 @@ public class ScryfallImageSupportTokens {
 
             // DSK
             put("DSK/Beast", "https://api.scryfall.com/cards/tdsk/3?format=image");
+            put("DSK/Demon", "https://api.scryfall.com/cards/tdsk/9?format=image");
             put("DSK/Emblem Kaito", "https://api.scryfall.com/cards/tdsk/17/en?format=image");
             put("DSK/Everywhere", "https://api.scryfall.com/cards/tdsk/16?format=image");
             put("DSK/Glimmer", "https://api.scryfall.com/cards/tdsk/4?format=image");
@@ -2556,6 +2562,7 @@ public class ScryfallImageSupportTokens {
             put("DSK/Spider", "https://api.scryfall.com/cards/tdsk/12?format=image");
             put("DSK/Spirit/1", "https://api.scryfall.com/cards/tdsk/6?format=image");
             put("DSK/Spirit/2", "https://api.scryfall.com/cards/tdsk/8?format=image");
+            put("DSK/Toy", "https://api.scryfall.com/cards/tdsk/7?format=image");
             put("DSK/Treasure", "https://api.scryfall.com/cards/tdsk/15?format=image");
 
             // DSC
@@ -2816,6 +2823,42 @@ public class ScryfallImageSupportTokens {
             put("EOC/Shapeshifter", "https://api.scryfall.com/cards/teoc/2/en?format=image");
             put("EOC/Thopter", "https://api.scryfall.com/cards/teoc/16/en?format=image");
 
+            // SPM
+            put("SPM/Food", "https://api.scryfall.com/cards/tspm/5?format=image");
+            put("SPM/Human", "https://api.scryfall.com/cards/tspm/4?format=image");
+            put("SPM/Illusion", "https://api.scryfall.com/cards/tspm/2?format=image");
+            put("SPM/Robot", "https://api.scryfall.com/cards/tspm/6?format=image");
+            put("SPM/Spider", "https://api.scryfall.com/cards/tspm/3?format=image");
+            put("SPM/Treasure", "https://api.scryfall.com/cards/tspm/7?format=image");
+
+            // TLA
+            put("TLA/Ally/1", "https://api.scryfall.com/cards/ttla/4/?format=image");
+            put("TLA/Ally/2", "https://api.scryfall.com/cards/ttla/5/?format=image");
+            put("TLA/Ally/3", "https://api.scryfall.com/cards/ttla/6/?format=image");
+            put("TLA/Ally/4", "https://api.scryfall.com/cards/ttla/7/?format=image");
+            put("TLA/Ally/5", "https://api.scryfall.com/cards/ttla/8/?format=image");
+            put("TLA/Ballistic Boulder", "https://api.scryfall.com/cards/ttla/13/?format=image");
+            put("TLA/Bear", "https://api.scryfall.com/cards/ttla/12/?format=image");
+            put("TLA/Clue/1", "https://api.scryfall.com/cards/ttla/14/?format=image");
+            put("TLA/Clue/2", "https://api.scryfall.com/cards/ttla/15/?format=image");
+            put("TLA/Clue/3", "https://api.scryfall.com/cards/ttla/16/?format=image");
+            put("TLA/Clue/4", "https://api.scryfall.com/cards/ttla/17/?format=image");
+            put("TLA/Clue/5", "https://api.scryfall.com/cards/ttla/18/?format=image");
+            put("TLA/Food/1", "https://api.scryfall.com/cards/ttla/19/?format=image");
+            put("TLA/Food/2", "https://api.scryfall.com/cards/ttla/20/?format=image");
+            put("TLA/Food/3", "https://api.scryfall.com/cards/ttla/21/?format=image");
+            put("TLA/Monk", "https://api.scryfall.com/cards/ttla/10/?format=image");
+            put("TLA/Soldier", "https://api.scryfall.com/cards/ttla/11/?format=image");
+            put("TLA/Spirit", "https://api.scryfall.com/cards/ttla/3/?format=image");
+            put("TLA/Treasure", "https://api.scryfall.com/cards/ttla/22?format=image");
+
+            // TLE
+            put("TLE/Marit Lage", "https://api.scryfall.com/cards/ttle/1/?format=image");
+            put("TLE/Soldier", "https://api.scryfall.com/cards/ttle/2?format=image");
+
+            // TMT
+            put("TMT/Mutagen", "https://api.scryfall.com/cards/ttmt/9?format=image");
+
             // JVC
             put("JVC/Elemental Shaman", "https://api.scryfall.com/cards/tjvc/4?format=image");
 
@@ -2928,6 +2971,12 @@ public class ScryfallImageSupportTokens {
 
             // PL23
             put("PL23/Food", "https://api.scryfall.com/cards/pl23/2?format=image");
+
+            // PL24
+            put("PL24/Dragon", "https://api.scryfall.com/cards/pl24/3?format=image");
+
+            // PL25
+            put("PL25/Snake", "https://api.scryfall.com/cards/pl25/2?format=image");
 
             // generate supported sets
             supportedSets.clear();

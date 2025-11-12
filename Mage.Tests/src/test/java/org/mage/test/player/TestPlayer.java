@@ -334,11 +334,8 @@ public class TestPlayer implements Player {
             return true;
         } else if (groups[2].startsWith("spellOnTopOfStack=")) {
             String spellOnTopOFStack = groups[2].substring(18);
-            if (!game.getStack().isEmpty()) {
-                StackObject stackObject = game.getStack().getFirst();
-                return stackObject != null && stackObject.getStackAbility().toString().contains(spellOnTopOFStack);
-            }
-            return false;
+            StackObject stackObject = game.getStack().getFirstOrNull();
+            return stackObject != null && stackObject.getStackAbility().toString().contains(spellOnTopOFStack);
         } else if (groups[2].startsWith("manaInPool=")) {
             String manaInPool = groups[2].substring(11);
             int amountOfMana = Integer.parseInt(manaInPool);
@@ -3763,28 +3760,18 @@ public class TestPlayer implements Player {
     }
 
     @Override
-    public PayLifeCostLevel getPayLifeCostLevel() {
-        return computerPlayer.getPayLifeCostLevel();
+    public EnumSet<PayLifeCostRestriction> getPayLifeCostRestrictions() {
+        return computerPlayer.getPayLifeCostRestrictions();
     }
 
     @Override
-    public void setPayLifeCostLevel(PayLifeCostLevel payLifeCostLevel) {
-        computerPlayer.setPayLifeCostLevel(payLifeCostLevel);
+    public void addPayLifeCostRestriction(PayLifeCostRestriction payLifeCostRestriction) {
+        computerPlayer.addPayLifeCostRestriction(payLifeCostRestriction);
     }
 
     @Override
     public boolean canPaySacrificeCost(Permanent permanent, Ability source, UUID controllerId, Game game) {
         return computerPlayer.canPaySacrificeCost(permanent, source, controllerId, game);
-    }
-
-    @Override
-    public FilterPermanent getSacrificeCostFilter() {
-        return computerPlayer.getSacrificeCostFilter();
-    }
-
-    @Override
-    public void setCanPaySacrificeCostFilter(FilterPermanent permanent) {
-        computerPlayer.setCanPaySacrificeCostFilter(permanent);
     }
 
     @Override

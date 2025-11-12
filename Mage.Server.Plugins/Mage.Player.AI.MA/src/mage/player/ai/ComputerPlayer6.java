@@ -219,6 +219,7 @@ public class ComputerPlayer6 extends ComputerPlayer {
         }
         // Condition to stop deeper simulation
         if (SimulationNode2.nodeCount > MAX_SIMULATED_NODES_PER_ERROR) {
+            // how-to fix: make sure you are disabled debug mode by COMPUTER_DISABLE_TIMEOUT_IN_GAME_SIMULATIONS = false
             throw new IllegalStateException("AI ERROR: too much nodes (possible actions)");
         }
         if (depth <= 0
@@ -398,7 +399,10 @@ public class ComputerPlayer6 extends ComputerPlayer {
     }
 
     protected void resolve(SimulationNode2 node, int depth, Game game) {
-        StackObject stackObject = game.getStack().getFirst();
+        StackObject stackObject = game.getStack().getFirstOrNull();
+        if (stackObject == null) {
+            throw new IllegalStateException("Catch empty stack on resolve (something wrong with sim code)");
+        }
         if (stackObject instanceof StackAbility) {
             // AI hint for search effects (calc all possible cards for best score)
             SearchEffect effect = getSearchEffect((StackAbility) stackObject);
@@ -498,7 +502,7 @@ public class ComputerPlayer6 extends ComputerPlayer {
         }
         logger.warn("Possible freeze chain:");
         if (root != null && chain.isEmpty()) {
-            logger.warn(" - unknown use case"); // maybe can't finish any calc, maybe related to target options, I don't know
+            logger.warn(" - unknown use case (too many possible targets?)"); // maybe can't finish any calc, maybe related to target options
         }
         chain.forEach(s -> {
             logger.warn(" - " + s);
@@ -639,7 +643,7 @@ public class ComputerPlayer6 extends ComputerPlayer {
                                         return "unknown";
                                     })
                                     .collect(Collectors.joining(", "));
-                            logger.info(String.format("Sim Prio [%d] -> with choices (TODO): [%d]<diff %s> (%s)",
+                            logger.info(String.format("Sim Prio [%d] -> with possible choices: [%d]<diff %s> (%s)",
                                     depth,
                                     currentNode.getDepth(),
                                     printDiffScore(currentScore - prevScore),
@@ -648,14 +652,18 @@ public class ComputerPlayer6 extends ComputerPlayer {
                         } else if (!currentNode.getChoices().isEmpty()) {
                             // ON CHOICES
                             String choicesInfo = String.join(", ", currentNode.getChoices());
-                            logger.info(String.format("Sim Prio [%d] -> with choices (TODO): [%d]<diff %s> (%s)",
+                            logger.info(String.format("Sim Prio [%d] -> with possible choices (must not see that code): [%d]<diff %s> (%s)",
                                     depth,
                                     currentNode.getDepth(),
                                     printDiffScore(currentScore - prevScore),
                                     choicesInfo)
                             );
                         } else {
-                            throw new IllegalStateException("AI CALC ERROR: unknown calculation result (no abilities, no targets, no choices)");
+                            logger.info(String.format("Sim Prio [%d] -> with do nothing: [%d]<diff %s>",
+                                    depth,
+                                    currentNode.getDepth(),
+                                    printDiffScore(currentScore - prevScore))
+                            );
                         }
                     }
                 }

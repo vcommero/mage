@@ -64,6 +64,7 @@ public enum SubType {
     JUNK("Junk", SubTypeSet.ArtifactType),
     LANDER("Lander", SubTypeSet.ArtifactType),
     MAP("Map", SubTypeSet.ArtifactType),
+    MUTAGEN("Mutagen", SubTypeSet.ArtifactType),
     POWERSTONE("Powerstone", SubTypeSet.ArtifactType),
     SPACECRAFT("Spacecraft", SubTypeSet.ArtifactType),
     TREASURE("Treasure", SubTypeSet.ArtifactType),
@@ -109,6 +110,7 @@ public enum SubType {
     BEHOLDER("Beholder", SubTypeSet.CreatureType),
     BERSERKER("Berserker", SubTypeSet.CreatureType),
     BIRD("Bird", SubTypeSet.CreatureType),
+    BISON("Bison", SubTypeSet.CreatureType),
     BITH("Bith", SubTypeSet.CreatureType, true), // Star Wars
     BLINKMOTH("Blinkmoth", SubTypeSet.CreatureType),
     BOAR("Boar", SubTypeSet.CreatureType),
@@ -233,6 +235,7 @@ public enum SubType {
     ILLUSION("Illusion", SubTypeSet.CreatureType),
     IMP("Imp", SubTypeSet.CreatureType),
     INCARNATION("Incarnation", SubTypeSet.CreatureType),
+    INFINITY("Infinity", SubTypeSet.ArtifactType),
     INKLING("Inkling", SubTypeSet.CreatureType),
     INQUISITOR("Inquisitor", SubTypeSet.CreatureType),
     INSECT("Insect", SubTypeSet.CreatureType),
@@ -245,6 +248,7 @@ public enum SubType {
     JUGGERNAUT("Juggernaut", SubTypeSet.CreatureType),
     // K
     KALEESH("Kaleesh", SubTypeSet.CreatureType, true), // Star Wars
+    KANGAROO("Kangaroo", SubTypeSet.CreatureType),
     KAVU("Kavu", SubTypeSet.CreatureType),
     KELDOR("KelDor", SubTypeSet.CreatureType, true),
     KILLBOT("Killbot", SubTypeSet.CreatureType, true), // Unstable
@@ -260,6 +264,7 @@ public enum SubType {
     LAMIA("Lamia", SubTypeSet.CreatureType),
     LAMMASU("Lammasu", SubTypeSet.CreatureType),
     LEECH("Leech", SubTypeSet.CreatureType),
+    LEMUR("Lemur", SubTypeSet.CreatureType),
     LEVIATHAN("Leviathan", SubTypeSet.CreatureType),
     LHURGOYF("Lhurgoyf", SubTypeSet.CreatureType),
     LICID("Licid", SubTypeSet.CreatureType),
@@ -328,6 +333,7 @@ public enum SubType {
     PINCHER("Pincher", SubTypeSet.CreatureType),
     PIRATE("Pirate", SubTypeSet.CreatureType),
     PLANT("Plant", SubTypeSet.CreatureType),
+    PLATYPUS("Platypus", SubTypeSet.CreatureType),
     PORCUPINE("Porcupine", SubTypeSet.CreatureType),
     POSSUM("Possum", SubTypeSet.CreatureType),
     PRAETOR("Praetor", SubTypeSet.CreatureType),
@@ -399,6 +405,7 @@ public enum SubType {
     SQUIRREL("Squirrel", SubTypeSet.CreatureType),
     STARFISH("Starfish", SubTypeSet.CreatureType),
     STARSHIP("Starship", SubTypeSet.CreatureType, true), // Star Wars
+    STONE("Stone", SubTypeSet.ArtifactType),
     SULLUSTAN("Sullustan", SubTypeSet.CreatureType, true), // Star Wars
     SURRAKAR("Surrakar", SubTypeSet.CreatureType),
     SURVIVOR("Survivor", SubTypeSet.CreatureType),
@@ -426,6 +433,7 @@ public enum SubType {
     // U
     UGNAUGHT("Ugnaught", SubTypeSet.CreatureType, true),
     UNICORN("Unicorn", SubTypeSet.CreatureType),
+    UTROM("Utrom", SubTypeSet.CreatureType),
     // V
     VAMPIRE("Vampire", SubTypeSet.CreatureType),
     VARMINT("Varmint", SubTypeSet.CreatureType),

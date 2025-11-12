@@ -83,7 +83,7 @@ class TheAesirEscapeValhallaOneEffect extends OneShotEffect {
         controller.choose(outcome, target, source, game);
         Card card = game.getCard(target.getFirstTarget());
         if (card != null) {
-            UUID exileId = CardUtil.getExileZoneId(game, source, 1);
+            UUID exileId = CardUtil.getExileZoneId(game, source);
             MageObject sourceObject = source.getSourceObject(game);
             String exileName = sourceObject != null ? sourceObject.getName() : "";
             controller.moveCardsToExile(card, source, game, false, exileId, exileName);
@@ -116,7 +116,7 @@ class TheAesirEscapeValhallaTwoEffect extends OneShotEffect {
         if (controller == null || sourceObject == null) {
             return false;
         }
-        UUID exileId = CardUtil.getExileZoneId(game, source.getSourceId(), source.getSourceObjectZoneChangeCounter());
+        UUID exileId = CardUtil.getExileZoneId(game, source.getSourceId(), source.getStackMomentSourceZCC());
         ExileZone exileZone = game.getExile().getExileZone(exileId);
         if (exileZone == null || exileZone.isEmpty()) {
             return false;
@@ -154,7 +154,7 @@ class TheAesirEscapeValhallaThreeEffect extends OneShotEffect {
 
     @Override
     public boolean apply(Game game, Ability source) {
-        UUID exileId = CardUtil.getExileZoneId(game, source.getSourceId(), source.getSourceObjectZoneChangeCounter());
+        UUID exileId = CardUtil.getExileZoneId(game, source.getSourceId(), source.getStackMomentSourceZCC());
         ExileZone exileZone = game.getExile().getExileZone(exileId);
         Player controller = game.getPlayer(source.getControllerId());
         Permanent sourcePermanent = game.getPermanent(source.getSourceId());

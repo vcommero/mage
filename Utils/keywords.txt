@@ -52,6 +52,7 @@ Exploit|new|
 Extort|new|
 Fabricate|number|
 Fear|instance|
+Firebending|number|
 First strike|instance|
 Flanking|new|
 Flash|instance|
@@ -125,6 +126,7 @@ Shroud|instance|
 Soulbond|new|
 Soulshift|number|
 Skulk|new|
+Sneak|card, manaString|
 Spectacle|card, cost|
 Spree|card|
 Squad|cost|
