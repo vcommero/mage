@@ -105,7 +105,8 @@ public final class ThreadUtils {
         if (name.startsWith(THREAD_PREFIX_GAME)) {
             // server game
             return true;
-        } else if (name.startsWith(THREAD_PREFIX_AI_SIMULATION_MAD)) {
+        } else if (name.startsWith(THREAD_PREFIX_AI_SIMULATION_MAD) || 
+            name.startsWith(THREAD_PREFIX_AI_SIMULATION_MCTS)) {
             // ai simulation
             return true;
         } else if (name.equals("main")) {

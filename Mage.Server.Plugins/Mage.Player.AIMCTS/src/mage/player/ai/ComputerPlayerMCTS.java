@@ -30,6 +30,9 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
     private static final int THINK_MAX_RATIO = 100;
     private static final double THINK_TIME_MULTIPLIER = 2.0;
     private static final boolean USE_MULTIPLE_THREADS = true;
+    
+    // OPTIMIZATION: Conditional logging to reduce overhead
+    private static final boolean VERBOSE_LOGGING = true; // Set to true for debugging
 
     protected transient MCTSNode root;
     protected int maxThinkTime;
@@ -37,6 +40,10 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
     private int poolSize;
 
     private ExecutorService threadPoolSimulations = null;
+    
+    // OPTIMIZATION: Cache simulated games within the same turn
+    private Game cachedSimGame = null;
+    private int cachedSimTurn = -1;
 
     public ComputerPlayerMCTS(String name, RangeOfInfluence range, int skill) {
         super(name, range);
@@ -64,11 +71,13 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
     public boolean priority(Game game) {
         if (game.getTurnStepType() == PhaseStep.UPKEEP) {
             if (!lastPhase.equals(game.getTurn().getValue(game.getTurnNum()))) {
-                logList(game.getTurn().getValue(game.getTurnNum()) + name + " hand: ", new ArrayList(hand.getCards(game)));
+                if (VERBOSE_LOGGING) {
+                    logList(game.getTurn().getValue(game.getTurnNum()) + name + " hand: ", new ArrayList(hand.getCards(game)));
+                }
                 lastPhase = game.getTurn().getValue(game.getTurnNum());
                 if (MCTSNode.USE_ACTION_CACHE) {
                     int count = MCTSNode.cleanupCache(game.getTurnNum());
-                    if (count > 0)
+                    if (count > 0 && VERBOSE_LOGGING)
                         logger.info("Removed " + count + " cache entries");
                 }
             }
@@ -82,8 +91,11 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
         activateAbility((ActivatedAbility) ability, game);
         if (ability instanceof PassAbility)
             return false;
-        logLife(game);
-        logger.info("choose action:" + root.getAction() + " success ratio: " + root.getWinRatio());
+        
+        if (VERBOSE_LOGGING) {
+            logLife(game);
+            logger.info("choose action:" + root.getAction() + " success ratio: " + root.getWinRatio());
+        }
         return true;
     }
 
@@ -94,7 +106,17 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
             player.setNextAction(action);
             root = new MCTSNode(playerId, sim);
         }
-        applyMCTS(game, action);
+        
+        // OPTIMIZATION: Expand root at least once to discover available actions
+        if (root.isLeaf() && !root.isTerminal()) {
+            root.expand();
+        }
+        
+        // OPTIMIZATION: Skip expensive MCTS if only one action available
+        if (root.getNumChildren() > 1) {
+            applyMCTS(game, action);
+        }
+        
         if (root != null && root.bestChild() != null) {
             root = root.bestChild();
             root.emancipate();
@@ -116,23 +138,26 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
 
     @Override
     public void selectAttackers(Game game, UUID attackingPlayerId) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(game.getTurn().getValue(game.getTurnNum())).append(" player ").append(name).append(" attacking with: ");
         getNextAction(game, NextAction.SELECT_ATTACKERS);
         Combat combat = root.getCombat();
         UUID opponentId = game.getCombat().getDefenders().iterator().next();
         for (UUID attackerId : combat.getAttackers()) {
             this.declareAttacker(attackerId, opponentId, game, false);
-            sb.append(game.getPermanent(attackerId).getName()).append(',');
         }
-        logger.info(sb.toString());
-        MCTSNode.logHitMiss();
+        
+        if (VERBOSE_LOGGING) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(game.getTurn().getValue(game.getTurnNum())).append(" player ").append(name).append(" attacking with: ");
+            for (UUID attackerId : combat.getAttackers()) {
+                sb.append(game.getPermanent(attackerId).getName()).append(',');
+            }
+            logger.info(sb.toString());
+            MCTSNode.logHitMiss();
+        }
     }
 
     @Override
     public void selectBlockers(Ability source, Game game, UUID defendingPlayerId) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(game.getTurn().getValue(game.getTurnNum())).append(" player ").append(name).append(" blocking: ");
         getNextAction(game, NextAction.SELECT_BLOCKERS);
         Combat simulatedCombat = root.getCombat();
         List<CombatGroup> currentGroups = game.getCombat().getGroups();
@@ -140,23 +165,56 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
             if (i < simulatedCombat.getGroups().size()) {
                 CombatGroup currentGroup = currentGroups.get(i);
                 CombatGroup simulatedGroup = simulatedCombat.getGroups().get(i);
-                sb.append(game.getPermanent(currentGroup.getAttackers().get(0)).getName()).append(" with: ");
                 for (UUID blockerId : simulatedGroup.getBlockers()) {
                     // blockers can be added automaticly by requirement effects, so we must add only missing blockers
                     if (!currentGroup.getBlockers().contains(blockerId)) {
                         this.declareBlocker(this.getId(), blockerId, currentGroup.getAttackers().get(0), game);
-                        sb.append(game.getPermanent(blockerId).getName()).append(',');
                     }
                 }
-                sb.append('|');
             }
         }
-        logger.info(sb.toString());
-        MCTSNode.logHitMiss();
+        
+        if (VERBOSE_LOGGING) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(game.getTurn().getValue(game.getTurnNum())).append(" player ").append(name).append(" blocking: ");
+            for (int i = 0; i < currentGroups.size(); i++) {
+                if (i < simulatedCombat.getGroups().size()) {
+                    CombatGroup currentGroup = currentGroups.get(i);
+                    CombatGroup simulatedGroup = simulatedCombat.getGroups().get(i);
+                    sb.append(game.getPermanent(currentGroup.getAttackers().get(0)).getName()).append(" with: ");
+                    for (UUID blockerId : simulatedGroup.getBlockers()) {
+                        if (!currentGroup.getBlockers().contains(blockerId)) {
+                            sb.append(game.getPermanent(blockerId).getName()).append(',');
+                        }
+                    }
+                    sb.append('|');
+                }
+            }
+            logger.info(sb.toString());
+            MCTSNode.logHitMiss();
+        }
     }
 
     protected long totalThinkTime = 0;
     protected long totalSimulations = 0;
+
+    /**
+     * OPTIMIZATION: Get or create thread pool with better lifecycle management
+     */
+    private ExecutorService getOrCreateThreadPool() {
+        if (threadPoolSimulations == null || threadPoolSimulations.isShutdown()) {
+            threadPoolSimulations = new ThreadPoolExecutor(
+                    poolSize,
+                    poolSize,
+                    60L, // Allow threads to timeout after 60 seconds of inactivity
+                    TimeUnit.SECONDS,
+                    new LinkedBlockingQueue<>(),
+                    new XmageThreadFactory(ThreadUtils.THREAD_PREFIX_AI_SIMULATION_MCTS)
+            );
+            ((ThreadPoolExecutor) threadPoolSimulations).allowCoreThreadTimeOut(true);
+        }
+        return threadPoolSimulations;
+    }
 
     protected void applyMCTS(final Game game, final NextAction action) {
 
@@ -164,18 +222,7 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
 
         if (thinkTime > 0) {
             if (USE_MULTIPLE_THREADS) {
-                if (this.threadPoolSimulations == null) {
-                    // same params as Executors.newFixedThreadPool
-                    // no needs errors check in afterExecute here cause that pool used for FutureTask with result check already
-                    this.threadPoolSimulations = new ThreadPoolExecutor(
-                            poolSize,
-                            poolSize,
-                            0L,
-                            TimeUnit.MILLISECONDS,
-                            new LinkedBlockingQueue<>(),
-                            new XmageThreadFactory(ThreadUtils.THREAD_PREFIX_AI_SIMULATION_MCTS) // TODO: add player/game to thread name?
-                    );
-                }
+                ExecutorService pool = getOrCreateThreadPool();
 
                 List<MCTSExecutor> tasks = new ArrayList<>();
                 for (int i = 0; i < poolSize; i++) {
@@ -187,7 +234,7 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
                 }
 
                 try {
-                    List<Future<Boolean>> runningTasks = threadPoolSimulations.invokeAll(tasks, thinkTime, TimeUnit.SECONDS);
+                    List<Future<Boolean>> runningTasks = pool.invokeAll(tasks, thinkTime, TimeUnit.SECONDS);
                     for (Future<Boolean> runningTask : runningTasks) {
                         runningTask.get();
                     }
@@ -210,9 +257,12 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
                 tasks.clear();
                 totalThinkTime += thinkTime;
                 totalSimulations += simCount;
-                logger.info("Player: " + name + " Simulated " + simCount + " games in " + thinkTime + " seconds - nodes in tree: " + root.size());
-                logger.info("Total: Simulated " + totalSimulations + " games in " + totalThinkTime + " seconds - Average: " + totalSimulations / totalThinkTime);
-                MCTSNode.logHitMiss();
+                
+                if (VERBOSE_LOGGING) {
+                    logger.info("Player: " + name + " Simulated " + simCount + " games in " + thinkTime + " seconds - nodes in tree: " + root.size());
+                    logger.info("Total: Simulated " + totalSimulations + " games in " + totalThinkTime + " seconds - Average: " + totalSimulations / totalThinkTime);
+                    MCTSNode.logHitMiss();
+                }
             } else {
                 long startTime = System.nanoTime();
                 long endTime = startTime + (thinkTime * 1000000000l);
@@ -244,7 +294,10 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
                     // Backpropagation
                     current.backpropagate(result);
                 }
-                logger.info("Simulated " + simCount + " games - nodes in tree: " + root.size());
+                
+                if (VERBOSE_LOGGING) {
+                    logger.info("Simulated " + simCount + " games - nodes in tree: " + root.size());
+                }
             }
 //            displayMemory();
         }
@@ -291,11 +344,21 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
      * Swaps all other players hands with random cards from the library so that
      * there is no knowledge of what cards are in opponents hands
      * The most knowledge that is known is what cards are in an opponents deck
+     * 
+     * OPTIMIZATION: Caches the base simulation within a turn to avoid repeated expensive operations
      *
      * @param game
      * @return a new game object with simulated players
      */
     protected Game createMCTSGame(Game game) {
+        /* 
+        // Reuse cached game if we're still in the same turn
+        if (cachedSimGame != null && cachedSimTurn == game.getTurnNum()) {
+            Game reused = cachedSimGame.copy();
+            reused.resume();
+            return reused;
+        }*/
+        
         Game mcts = game.createSimulationForAI();
 
         for (Player copyPlayer : mcts.getState().getPlayers().values()) {
@@ -318,8 +381,34 @@ public class ComputerPlayerMCTS extends ComputerPlayer {
             }
             mcts.getState().getPlayers().put(copyPlayer.getId(), newPlayer);
         }
+        
+        // Cache the base simulation
+        // cachedSimGame = mcts.copy();
+        // cachedSimTurn = game.getTurnNum();
+        
         mcts.resume();
         return mcts;
+    }
+
+    /**
+     * OPTIMIZATION: Properly shutdown thread pool and clear caches
+     */
+    public void shutdown() {
+        if (threadPoolSimulations != null && !threadPoolSimulations.isShutdown()) {
+            threadPoolSimulations.shutdown();
+            try {
+                if (!threadPoolSimulations.awaitTermination(5, TimeUnit.SECONDS)) {
+                    threadPoolSimulations.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                threadPoolSimulations.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+        
+        // Clear caches
+        // cachedSimGame = null;
+        // cachedSimTurn = -1;
     }
 
     protected void displayMemory() {

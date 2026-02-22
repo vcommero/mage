@@ -1,8 +1,8 @@
-
 package mage.player.ai;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -17,6 +17,12 @@ import mage.cards.Card;
 import mage.game.Game;
 import mage.game.combat.Combat;
 import mage.game.turn.Step.StepPart;
+import mage.player.ai.optimizers.TreeOptimizer;
+import mage.player.ai.optimizers.impl.DiscardCardOptimizer;
+import mage.player.ai.optimizers.impl.EquipOptimizer;
+import mage.player.ai.optimizers.impl.LevelUpOptimizer;
+import mage.player.ai.optimizers.impl.OutcomeOptimizer;
+import mage.player.ai.optimizers.impl.WrongCodeUsageOptimizer;
 import mage.players.Player;
 import mage.util.RandomUtil;
 import org.apache.log4j.Logger;
@@ -30,7 +36,19 @@ public class MCTSNode {
     public static final boolean USE_ACTION_CACHE = false;
     private static final double selectionCoefficient = Math.sqrt(2.0);
     private static final double passRatioTolerance = 0.0;
+    private static final List<TreeOptimizer> optimizers = new ArrayList<>();
     private static final Logger logger = Logger.getLogger(MCTSNode.class);
+    
+    // OPTIMIZATION: Depth limit for state matching search
+    private static final int MAX_STATE_SEARCH_DEPTH = 5;
+
+    static {
+        optimizers.add(new WrongCodeUsageOptimizer());  // Keep this as validation
+        optimizers.add(new LevelUpOptimizer());
+        optimizers.add(new EquipOptimizer());
+        optimizers.add(new DiscardCardOptimizer());
+        optimizers.add(new OutcomeOptimizer());
+    }
 
     private int visits = 0;
     private int wins = 0;
@@ -294,6 +312,7 @@ public class MCTSNode {
     }
 
     /**
+     * OPTIMIZATION: Depth-limited breadth first search for matching game state
      * 
      * performs a breadth first search for a matching game state
      * 
@@ -303,15 +322,31 @@ public class MCTSNode {
     public MCTSNode getMatchingState(String state) {
         ArrayDeque<MCTSNode> queue = new ArrayDeque<>();
         queue.add(this);
+        
+        int depth = 0;
+        int nodesAtCurrentDepth = 1;
+        int nodesAtNextDepth = 0;
 
-        while (!queue.isEmpty()) {
+        while (!queue.isEmpty() && depth < MAX_STATE_SEARCH_DEPTH) {
             MCTSNode current = queue.remove();
-            if (current.stateValue.equals(state))
+            nodesAtCurrentDepth--;
+            
+            if (current.stateValue.equals(state)) {
                 return current;
+            }
+            
             for (MCTSNode child: current.children) {
                 queue.add(child);
+                nodesAtNextDepth++;
+            }
+            
+            if (nodesAtCurrentDepth == 0) {
+                depth++;
+                nodesAtCurrentDepth = nodesAtNextDepth;
+                nodesAtNextDepth = 0;
             }
         }
+        
         return null;
     }
 
@@ -412,6 +447,7 @@ public class MCTSNode {
         else {
             playablesMiss++;
             List<Ability> abilities = player.getPlayableOptions(game);
+            applyOptimizers(game, abilities);
             playablesCache.put(state, abilities);
             return abilities;
         }
@@ -442,39 +478,43 @@ public class MCTSNode {
             return blocks;
         }
     }
-    
-    public static int cleanupCache(int turnNum) {
-        Set<String> playablesKeys = playablesCache.keySet();
-        Iterator<String> playablesIterator = playablesKeys.iterator();
-        int count = 0;
-        while(playablesIterator.hasNext()) {
-            String next = playablesIterator.next();
-            int cacheTurn = Integer.parseInt(next.split(":", 2)[0].substring(1));
-            if (cacheTurn < turnNum) {
-                playablesIterator.remove();
-                count++;
-            }
-        }
 
-        Set<String> attacksKeys = attacksCache.keySet();
-        Iterator<String> attacksIterator = attacksKeys.iterator();
-        while(attacksIterator.hasNext()) {
-            int cacheTurn = Integer.parseInt(attacksIterator.next().split(":", 2)[0].substring(1));
-            if (cacheTurn < turnNum) {
-                attacksIterator.remove();
-                count++;
-            }
+    private static void applyOptimizers(Game game, List<Ability> actions) {
+    // Use the same optimizer pattern as ComputerPlayer6
+        if (!MCTSNode.USE_ACTION_CACHE) {
+            // Don't use optimizers when cache is disabled - too expensive to run every time
+            return;
         }
         
-        Set<String> blocksKeys = blocksCache.keySet();
-        Iterator<String> blocksIterator = blocksKeys.iterator();
-        while(blocksIterator.hasNext()) {
-            int cacheTurn = Integer.parseInt(blocksIterator.next().split(":", 2)[0].substring(1));
-            if (cacheTurn < turnNum) {
-                blocksIterator.remove();
-                count++;
-            }
+        for (TreeOptimizer optimizer : optimizers) {
+            optimizer.optimize(game, actions);
         }
+    }
+    
+    /**
+     * OPTIMIZATION: More efficient cache cleanup using removeIf
+     */
+    public static int cleanupCache(int turnNum) {
+        int count = playablesCache.size();
+        playablesCache.entrySet().removeIf(e -> {
+            int cacheTurn = Integer.parseInt(e.getKey().split(":", 2)[0].substring(1));
+            return cacheTurn < turnNum;
+        });
+        count -= playablesCache.size();
+
+        int attacksCount = attacksCache.size();
+        attacksCache.entrySet().removeIf(e -> {
+            int cacheTurn = Integer.parseInt(e.getKey().split(":", 2)[0].substring(1));
+            return cacheTurn < turnNum;
+        });
+        count += attacksCount - attacksCache.size();
+        
+        int blocksCount = blocksCache.size();
+        blocksCache.entrySet().removeIf(e -> {
+            int cacheTurn = Integer.parseInt(e.getKey().split(":", 2)[0].substring(1));
+            return cacheTurn < turnNum;
+        });
+        count += blocksCount - blocksCache.size();
 
         return count;
     }
