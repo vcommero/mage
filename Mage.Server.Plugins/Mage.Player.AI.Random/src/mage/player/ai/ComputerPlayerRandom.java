@@ -139,12 +139,12 @@ public class ComputerPlayerRandom extends ComputerPlayer {
         List<ActivatedAbility> landPlays = availableActions.stream()
             .filter(a -> a instanceof PlayLandAbility || a instanceof PlayLandAsCommanderAbility)
             .collect(Collectors.toList());
-        logger.warn(String.format("Random - player: Found %d land plays", landPlays.size()));
+        logger.warn(String.format("Random player: Found %d land plays", landPlays.size()));
         if (!landPlays.isEmpty()) {
             ActivatedAbility landPlay = landPlays.get(RandomUtil.nextInt(landPlays.size()));
             Card card = game.getCard(landPlay.getSourceId());
             if (card != null) {
-                logger.info(String.format("%s plays land: " + card.getName(), getName()));
+                logger.warn(String.format("%s plays land: " + card.getName(), getName()));
                 return landPlay;
             }
         }
@@ -159,12 +159,12 @@ public class ComputerPlayerRandom extends ComputerPlayer {
                     // Cast a spell
                     Card card = game.getCard(randomAction.getSourceId());
                     if (card != null) {
-                        logger.info(String.format("%s casting: " + card.getName(), getName()));
+                        logger.warn(String.format("%s casting: " + card.getName(), getName()));
                         return randomAction;
                     }
                 } else if (randomAction instanceof ActivatedAbility) {
                     // Activate an ability
-                    logger.info(String.format("%s activating ability: %s", getName(), randomAction.getRule()));
+                    logger.warn(String.format("%s activating ability: %s", getName(), randomAction.getRule()));
                     return randomAction;
                 }
                 else {
@@ -194,7 +194,7 @@ public class ComputerPlayerRandom extends ComputerPlayer {
             
             ActivatedAbility ability = action;
             // example: ===> SELECTED ACTION for PlayerA: Play Swamp
-            /*logger.info(String.format("===> SELECTED ACTION for %s: %s",
+            /*logger.warn(String.format("===> SELECTED ACTION for %s: %s",
                     getName(),
                     getAbilityAndSourceInfo(game, ability, true)
             ));*/
@@ -363,7 +363,7 @@ public class ComputerPlayerRandom extends ComputerPlayer {
                 this.declareBlocker(this.getId(), randomBlocker.getId(), attacker.getId(), game);
                 unusedBlockers.remove(randomBlocker);
                 
-                logger.info("Random AI blocking " + attacker.getName() + 
+                logger.warn("Random AI blocking " + attacker.getName() + 
                            " with " + randomBlocker.getName());
             }
         }
