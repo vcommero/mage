@@ -298,11 +298,9 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
         }
         
         // Select action to expand (can use heuristics)
-        ActivatedAbility actionToExpand = selectActionForExpansion(node.getUnexploredActions(), game);
-        
-        if (actionToExpand == null) {
+        if (node.getUnexploredActions().isEmpty())
             return node;
-        }
+        ActivatedAbility actionToExpand = selectActionWithHeuristic(node.getUnexploredActions(), game);
         
         // Apply action and create child
         applyActionToGame(actionToExpand, game);
@@ -546,28 +544,6 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
      */
     private boolean shouldExpand(MCTSReduxNode node) {
         return !node.getUnexploredActions().isEmpty() && node.getVisits() > 0;
-    }
-
-    /**
-     * Helper: Select action for expansion with heuristics
-     */
-    private ActivatedAbility selectActionForExpansion(List<ActivatedAbility> actions, Game game) {
-        if (actions.isEmpty()) {
-            return null;
-        }
-        
-        // Apply move ordering heuristics
-        actions.sort((a1, a2) -> {
-            int priority1 = getActionPriority(a1, game);
-            int priority2 = getActionPriority(a2, game);
-            return Integer.compare(priority2, priority1);
-        });
-        
-        // Epsilon-greedy selection
-        if (RandomUtil.nextDouble() < 0.8) {
-            return actions.get(0);
-        }
-        return actions.get(RandomUtil.nextInt(actions.size()));
     }
 
     /**
