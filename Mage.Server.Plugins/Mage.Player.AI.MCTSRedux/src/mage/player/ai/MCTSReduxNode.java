@@ -7,11 +7,11 @@ import java.util.*;
  * MCTS Node with modular design support.
  * Used by ComputerPlayerMCTSRedux for Monte Carlo Tree Search decisions.
  */
-class MCTSNode {
+public class MCTSReduxNode {
     private final UUID playerId;
     private final ActivatedAbility action;
-    private final MCTSNode parent;
-    private final List<MCTSNode> children;
+    private final MCTSReduxNode parent;
+    private final List<MCTSReduxNode> children;
     private final List<ActivatedAbility> unexploredActions;
     private final long stateHash;
 
@@ -20,7 +20,7 @@ class MCTSNode {
     private double priorScore; // For PUCT and other advanced strategies
     private Map<String, Double> metadata; // Extensible metadata for different algorithms
 
-    public MCTSNode(UUID playerId, ActivatedAbility action, MCTSNode parent,
+    public MCTSReduxNode(UUID playerId, ActivatedAbility action, MCTSReduxNode parent,
                     List<ActivatedAbility> availableActions, long stateHash) {
         this.playerId = playerId;
         this.action = action;
@@ -47,7 +47,7 @@ class MCTSNode {
         totalScore += score;
     }
 
-    public MCTSNode getChildForAction(ActivatedAbility action) {
+    public MCTSReduxNode getChildForAction(ActivatedAbility action) {
         return children.stream()
                 .filter(child -> child.action == action)
                 .findFirst()
@@ -57,8 +57,8 @@ class MCTSNode {
     // Getters and setters
     public UUID getPlayerId() { return playerId; }
     public ActivatedAbility getAction() { return action; }
-    public MCTSNode getParent() { return parent; }
-    public List<MCTSNode> getChildren() { return children; }
+    public MCTSReduxNode getParent() { return parent; }
+    public List<MCTSReduxNode> getChildren() { return children; }
     public List<ActivatedAbility> getUnexploredActions() { return unexploredActions; }
     public long getStateHash() { return stateHash; }
 

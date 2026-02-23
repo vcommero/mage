@@ -12,13 +12,15 @@ import mage.filter.common.FilterCreaturePermanent;
 import mage.game.Game;
 import mage.game.events.GameEvent;
 import mage.game.permanent.Permanent;
+import mage.player.ai.selection.SelectionStrategy;
+import mage.player.ai.selection.Ucb1SelectionStrategy;
+import mage.player.ai.util.StateHasher;
 import mage.players.Player;
 import mage.target.Target;
 import mage.util.RandomUtil;
 import org.apache.log4j.Logger;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -41,13 +43,6 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     private static final int MAX_ROLLOUT_DEPTH = 10;
     
     // Strategy Configuration Enums
-    public enum SelectionStrategy {
-        UCB1,           // Upper Confidence Bounds
-        THOMPSON,       // Thompson Sampling
-        EPSILON_GREEDY, // Epsilon-greedy selection
-        PUCT           // Predictor + UCT (AlphaZero style)
-    }
-    
     public enum SimulationStrategy {
         RANDOM_ROLLOUT,  // Random moves until terminal
         EVALUATION,      // Direct evaluation function
@@ -63,12 +58,12 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     }
     
     // Active strategies (can be configured)
-    private SelectionStrategy selectionStrategy = SelectionStrategy.UCB1;
+    private SelectionStrategy selectionStrategy = new Ucb1SelectionStrategy();
     private SimulationStrategy simulationStrategy = SimulationStrategy.EVALUATION;
     private ExpansionStrategy expansionStrategy = ExpansionStrategy.PROGRESSIVE;
     
     // Performance tracking
-    private final Map<Long, MCTSNode> transpositionTable = new ConcurrentHashMap<>();
+    private final TranspositionTable transpositionTable = new TranspositionTable();
     private long nodesExplored = 0;
     private long simulationsRun = 0;
 
@@ -150,7 +145,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
         
         // Initialize MCTS
         resetMetrics();
-        MCTSNode root = createRootNode(game, availableActions);
+        MCTSReduxNode root = createRootNode(game, availableActions);
         
         // Main MCTS loop
         long startTime = System.currentTimeMillis();
@@ -177,14 +172,14 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * Run a single MCTS iteration through all four phases
      */
-    private void runMCTSIteration(MCTSNode root, Game game) {
+    private void runMCTSIteration(MCTSReduxNode root, Game game) {
         Game simGame = game.copy();
         
         // Phase 1: Selection
-        MCTSNode selectedNode = performSelection(root, simGame);
+        MCTSReduxNode selectedNode = performSelection(root, simGame);
         
         // Phase 2: Expansion
-        MCTSNode expandedNode = performExpansion(selectedNode, simGame);
+        MCTSReduxNode expandedNode = performExpansion(selectedNode, simGame);
         
         // Phase 3: Simulation
         double score = performSimulation(expandedNode, simGame);
@@ -201,8 +196,8 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
      * @param game The game state (will be modified to match selected node)
      * @return The selected leaf node for expansion
      */
-    protected MCTSNode performSelection(MCTSNode root, Game game) {
-        MCTSNode current = root;
+    protected MCTSReduxNode performSelection(MCTSReduxNode root, Game game) {
+        MCTSReduxNode current = root;
         
         while (!current.isLeaf()) {
             // Check if we should expand or continue selection
@@ -211,7 +206,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
             }
             
             // Select best child according to strategy
-            MCTSNode selected = selectChild(current, game);
+            MCTSReduxNode selected = selectChild(current, game);
             if (selected == null) {
                 break;
             }
@@ -236,93 +231,8 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
      * @param game Current game state
      * @return Selected child node
      */
-    protected MCTSNode selectChild(MCTSNode node, Game game) {
-        if (node.getChildren().isEmpty()) {
-            return null;
-        }
-        
-        switch (selectionStrategy) {
-            case UCB1:
-                return selectChildUCB1(node);
-            case THOMPSON:
-                return selectChildThompsonSampling(node);
-            case EPSILON_GREEDY:
-                return selectChildEpsilonGreedy(node);
-            case PUCT:
-                return selectChildPUCT(node);
-            default:
-                return selectChildUCB1(node);
-        }
-    }
-
-    /**
-     * SKELETON: UCB1 selection implementation
-     */
-    private MCTSNode selectChildUCB1(MCTSNode node) {
-        // TODO: Implement UCB1 selection
-        // Formula: argmax(Q(s,a) + C * sqrt(ln(N(s)) / N(s,a)))
-        
-        double bestValue = Double.NEGATIVE_INFINITY;
-        MCTSNode bestChild = null;
-        double C = 1.41; // Exploration constant
-        
-        for (MCTSNode child : node.getChildren()) {
-            double exploitation = child.getAverageScore();
-            double exploration = child.getVisits() > 0 ? 
-                C * Math.sqrt(Math.log(node.getVisits()) / child.getVisits()) : 
-                Double.POSITIVE_INFINITY;
-            
-            double ucb1Value = exploitation + exploration;
-            
-            if (ucb1Value > bestValue) {
-                bestValue = ucb1Value;
-                bestChild = child;
-            }
-        }
-        
-        return bestChild;
-    }
-
-    /**
-     * SKELETON: Thompson Sampling selection
-     */
-    private MCTSNode selectChildThompsonSampling(MCTSNode node) {
-        // TODO: Implement Thompson Sampling
-        // Sample from Beta distribution for each child
-        // Select child with highest sampled value
-        
-        // Placeholder: Random selection
-        return node.getChildren().get(RandomUtil.nextInt(node.getChildren().size()));
-    }
-
-    /**
-     * SKELETON: Epsilon-greedy selection
-     */
-    private MCTSNode selectChildEpsilonGreedy(MCTSNode node) {
-        // TODO: Implement epsilon-greedy
-        // With probability epsilon: random child
-        // Otherwise: best average score
-        
-        double epsilon = 0.1;
-        if (RandomUtil.nextDouble() < epsilon) {
-            return node.getChildren().get(RandomUtil.nextInt(node.getChildren().size()));
-        }
-        
-        return node.getChildren().stream()
-            .max(Comparator.comparing(MCTSNode::getAverageScore))
-            .orElse(null);
-    }
-
-    /**
-     * SKELETON: PUCT selection (AlphaZero style)
-     */
-    private MCTSNode selectChildPUCT(MCTSNode node) {
-        // TODO: Implement PUCT selection
-        // Formula: argmax(Q(s,a) + C * P(s,a) * sqrt(N(s)) / (1 + N(s,a)))
-        // Where P(s,a) is the prior probability from a policy network
-        
-        // Placeholder: Use UCB1 for now
-        return selectChildUCB1(node);
+    protected MCTSReduxNode selectChild(MCTSReduxNode node, Game game) {
+        return selectionStrategy.selectChild(node, game);
     }
 
     /**
@@ -332,7 +242,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
      * @param game Current game state
      * @return The newly expanded node (or original if no expansion)
      */
-    protected MCTSNode performExpansion(MCTSNode node, Game game) {
+    protected MCTSReduxNode performExpansion(MCTSReduxNode node, Game game) {
         if (!shouldExpand(node) || isTerminalState(game)) {
             return node;
         }
@@ -354,7 +264,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * SKELETON: Expand all children at once
      */
-    private MCTSNode expandAllChildren(MCTSNode node, Game game) {
+    private MCTSReduxNode expandAllChildren(MCTSReduxNode node, Game game) {
         // TODO: Implement full expansion
         // Create all child nodes immediately
         
@@ -365,7 +275,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * SKELETON: Progressive widening expansion
      */
-    private MCTSNode expandProgressiveWidening(MCTSNode node, Game game) {
+    private MCTSReduxNode expandProgressiveWidening(MCTSReduxNode node, Game game) {
         // TODO: Implement progressive widening
         // Limit branching based on visit count: k * N^alpha
         
@@ -380,7 +290,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * SKELETON: Single child expansion
      */
-    private MCTSNode expandSingleChild(MCTSNode node, Game game) {
+    private MCTSReduxNode expandSingleChild(MCTSReduxNode node, Game game) {
         if (node.getUnexploredActions().isEmpty()) {
             return node;
         }
@@ -396,15 +306,15 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
         applyActionToGame(actionToExpand, game);
         
         List<ActivatedAbility> childActions = getFilteredActions(game);
-        long stateHash = computeStateHash(game);
+        long stateHash = StateHasher.computeStateHash(game);
         
         // Check transposition table
-        MCTSNode cachedNode = transpositionTable.get(stateHash);
+        MCTSReduxNode cachedNode = transpositionTable.get(stateHash);
         if (cachedNode != null) {
             return cachedNode;
         }
         
-        MCTSNode child = new MCTSNode(playerId, actionToExpand, node, childActions, stateHash);
+        MCTSReduxNode child = new MCTSReduxNode(playerId, actionToExpand, node, childActions, stateHash);
         node.getChildren().add(child);
         node.getUnexploredActions().remove(actionToExpand);
         
@@ -416,7 +326,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * SKELETON: Threshold-based expansion
      */
-    private MCTSNode expandThresholdBased(MCTSNode node, Game game) {
+    private MCTSReduxNode expandThresholdBased(MCTSReduxNode node, Game game) {
         // TODO: Implement threshold-based expansion
         // Expand when visits exceed certain threshold
         
@@ -435,7 +345,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
      * @param game Game state at this node
      * @return Score for the simulation (normalized to [0,1])
      */
-    protected double performSimulation(MCTSNode node, Game game) {
+    protected double performSimulation(MCTSReduxNode node, Game game) {
         simulationsRun++;
         
         switch (simulationStrategy) {
@@ -455,7 +365,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * SKELETON: Random rollout simulation
      */
-    private double simulateRandomRollout(MCTSNode node, Game game) {
+    private double simulateRandomRollout(MCTSReduxNode node, Game game) {
         // TODO: Implement random rollout
         // Play random moves until terminal state or depth limit
         
@@ -480,7 +390,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * SKELETON: Direct evaluation simulation
      */
-    private double simulateWithEvaluation(MCTSNode node, Game game) {
+    private double simulateWithEvaluation(MCTSReduxNode node, Game game) {
         // TODO: Implement evaluation-based simulation
         // Use heuristic or neural network to evaluate position
         
@@ -490,7 +400,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * SKELETON: Hybrid simulation (short rollout + evaluation)
      */
-    private double simulateHybrid(MCTSNode node, Game game) {
+    private double simulateHybrid(MCTSReduxNode node, Game game) {
         // TODO: Implement hybrid approach
         // Do short rollout (3-5 moves) then evaluate
         
@@ -514,7 +424,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * SKELETON: Heavy rollout with smart action selection
      */
-    private double simulateHeavyRollout(MCTSNode node, Game game) {
+    private double simulateHeavyRollout(MCTSReduxNode node, Game game) {
         // TODO: Implement heavy rollout
         // Use domain knowledge to guide rollout
         
@@ -594,8 +504,8 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
      * @param node Leaf node where simulation started
      * @param score Simulation result
      */
-    protected void performBackpropagation(MCTSNode node, double score) {
-        MCTSNode current = node;
+    protected void performBackpropagation(MCTSReduxNode node, double score) {
+        MCTSReduxNode current = node;
         
         while (current != null) {
             // Adjust score based on player perspective
@@ -614,7 +524,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * SKELETON: Update additional node metadata for advanced strategies
      */
-    protected void updateNodeMetadata(MCTSNode node, double score) {
+    protected void updateNodeMetadata(MCTSReduxNode node, double score) {
         // TODO: Implement metadata updates
         // AMAF/RAVE updates
         // Confidence bounds
@@ -632,7 +542,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * Helper: Should expand from this node?
      */
-    private boolean shouldExpand(MCTSNode node) {
+    private boolean shouldExpand(MCTSReduxNode node) {
         return !node.getUnexploredActions().isEmpty() && node.getVisits() > 0;
     }
 
@@ -706,13 +616,13 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * Helper: Select final action after MCTS search
      */
-    private ActivatedAbility selectFinalAction(MCTSNode root, Game game) {
+    private ActivatedAbility selectFinalAction(MCTSReduxNode root, Game game) {
         if (root.getChildren().isEmpty()) {
             return null;
         }
         
         // Select most visited child (robust)
-        MCTSNode bestChild = root.getChildren().stream()
+        MCTSReduxNode bestChild = root.getChildren().stream()
             .max(Comparator.comparing(n -> n.getVisits()))
             .orElse(null);
         
@@ -754,7 +664,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * Helper: Tree maintenance operations
      */
-    private void performTreeMaintenance(MCTSNode root) {
+    private void performTreeMaintenance(MCTSReduxNode root) {
         // Prune poor branches
         if (root.getChildren().size() > 5) {
             int totalVisits = root.getChildren().stream().mapToInt(c -> c.getVisits()).sum();
@@ -771,9 +681,9 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * Helper: Create root node for MCTS
      */
-    private MCTSNode createRootNode(Game game, List<ActivatedAbility> actions) {
-        long stateHash = computeStateHash(game);
-        return new MCTSNode(playerId, null, null, actions, stateHash);
+    private MCTSReduxNode createRootNode(Game game, List<ActivatedAbility> actions) {
+        long stateHash = StateHasher.computeStateHash(game);
+        return new MCTSReduxNode(playerId, null, null, actions, stateHash);
     }
 
     /**
@@ -811,30 +721,6 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     }
 
     /**
-     * Helper: Compute state hash for transposition detection
-     */
-    private long computeStateHash(Game game) {
-        long hash = 17;
-        
-        // Hash battlefield
-        for (Permanent permanent : game.getBattlefield().getAllActivePermanents()) {
-            hash = 31 * hash + permanent.getId().hashCode();
-            hash = 31 * hash + (permanent.isTapped() ? 1 : 0);
-        }
-        
-        // Hash life totals
-        for (Player player : game.getPlayers().values()) {
-            hash = 31 * hash + player.getLife();
-        }
-        
-        // Hash turn/phase
-        hash = 31 * hash + game.getTurnNum();
-        hash = 31 * hash + game.getStep().getType().hashCode();
-        
-        return hash;
-    }
-
-    /**
      * Helper: Check if state is terminal
      */
     private boolean isTerminalState(Game game) {
@@ -846,7 +732,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     /**
      * Helper: Log decision information
      */
-    private void logDecision(Game game, MCTSNode node) {
+    private void logDecision(Game game, MCTSReduxNode node) {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("MCTS Decision: visits=%d, avg=%.3f", 
             node.getVisits(), node.getAverageScore()));
