@@ -142,10 +142,13 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
         if (availableActions.size() == 1) {
             return availableActions.get(0);
         }
+
+        // Create game copy for MCTS search
+        Game mctsGame = game.createSimulationForAI();
         
         // Initialize MCTS
         resetMetrics();
-        MCTSReduxNode root = createRootNode(game, availableActions);
+        MCTSReduxNode root = createRootNode(mctsGame, availableActions);
         
         // Main MCTS loop
         long startTime = System.currentTimeMillis();
@@ -153,7 +156,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
         int iterations = 0;
         
         while (System.currentTimeMillis() < endTime) {
-            runMCTSIteration(root, game);
+            runMCTSIteration(root, mctsGame);
             iterations++;
             
             // Periodic maintenance
@@ -166,14 +169,13 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
             iterations, System.currentTimeMillis() - startTime));
         
         // Select best action
-        return selectFinalAction(root, game);
+        return selectFinalAction(root, mctsGame);
     }
 
     /**
      * Run a single MCTS iteration through all four phases
      */
-    private void runMCTSIteration(MCTSReduxNode root, Game game) {
-        Game simGame = game.copy();
+    private void runMCTSIteration(MCTSReduxNode root, Game simGame) {
         
         // Phase 1: Selection
         MCTSReduxNode selectedNode = performSelection(root, simGame);
