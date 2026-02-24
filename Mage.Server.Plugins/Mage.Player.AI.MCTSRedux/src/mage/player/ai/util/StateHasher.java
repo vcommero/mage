@@ -6,6 +6,8 @@ import mage.players.Player;
 
 /**
  * Utility class for computing state hashes for MCTS transposition detection.
+ * 
+ * @author vcommero
  */
 public class StateHasher {
 

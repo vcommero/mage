@@ -6,6 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Simple wrapper around a transposition table (state → node mapping).
  * Enables reuse and future enhancements (e.g., pruning, stats).
+ * 
+ * @author vcommero
  */
 public class TranspositionTable {
     private final Map<Long, MCTSReduxNode> table;

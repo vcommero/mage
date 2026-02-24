@@ -5,6 +5,8 @@ import mage.player.ai.MCTSReduxNode;
 /**
  * UCB1 (Upper Confidence Bound 1) selection strategy for MCTS.
  * Formula: argmax(Q(s,a) + C * sqrt(ln(N(s)) / N(s,a)))
+ * 
+ * @author vcommero
  */
 public class Ucb1SelectionStrategy implements SelectionStrategy {
     

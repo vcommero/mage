@@ -7,6 +7,8 @@ import mage.util.RandomUtil;
 /**
  * Thompson Sampling selection strategy for MCTS.
  * Approximates Bayesian posterior sampling using Beta distribution heuristics.
+ * 
+ * @author vcommero
  */
 public class ThompsonSamplingSelectionStrategy implements SelectionStrategy {
 

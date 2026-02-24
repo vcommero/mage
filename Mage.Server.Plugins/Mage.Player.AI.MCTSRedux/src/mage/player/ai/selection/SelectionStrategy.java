@@ -4,6 +4,8 @@ import mage.game.Game;
 import mage.player.ai.MCTSReduxNode;
 /**
  * Strategy interface for selecting the best child node during MCTS selection phase.
+ * 
+ * @author vcommero
  */
 public interface SelectionStrategy {
     /**

@@ -6,8 +6,7 @@ import mage.player.ai.MCTSReduxNode;
  * PUCT (Predictor + UCT) selection strategy for MCTS.
  * Formula: argmax(Q(s,a) + C * P(s,a) * sqrt(N(s)) / (1 + N(s,a)))
  *
- * Note: This implementation uses priorScore as a placeholder for the policy network's P(s,a).
- * In production, you would inject or compute real priors from a neural net.
+ * @author vcommero
  */
 public class PuctSelectionStrategy implements SelectionStrategy {
 

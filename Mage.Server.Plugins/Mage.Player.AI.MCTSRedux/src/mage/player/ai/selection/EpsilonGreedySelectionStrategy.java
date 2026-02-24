@@ -7,6 +7,8 @@ import mage.util.RandomUtil;
 /**
  * Epsilon-greedy selection strategy for MCTS.
  * With probability epsilon: random child; otherwise: best average score.
+ * 
+ * @author vcommero
  */
 public class EpsilonGreedySelectionStrategy implements SelectionStrategy {
 

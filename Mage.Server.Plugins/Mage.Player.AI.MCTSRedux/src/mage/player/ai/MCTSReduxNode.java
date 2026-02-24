@@ -6,6 +6,8 @@ import java.util.*;
 /**
  * MCTS Node with modular design support.
  * Used by ComputerPlayerMCTSRedux for Monte Carlo Tree Search decisions.
+ * 
+ * @author vcommero
  */
 public class MCTSReduxNode {
     private final UUID playerId;

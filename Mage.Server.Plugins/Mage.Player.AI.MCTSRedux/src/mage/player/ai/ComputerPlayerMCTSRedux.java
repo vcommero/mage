@@ -7,11 +7,9 @@ import mage.abilities.SpellAbility;
 import mage.abilities.common.PlayLandAsCommanderAbility;
 import mage.cards.Card;
 import mage.constants.RangeOfInfluence;
-import mage.filter.common.FilterCreatureForCombat;
-import mage.filter.common.FilterCreaturePermanent;
 import mage.game.Game;
 import mage.game.events.GameEvent;
-import mage.game.permanent.Permanent;
+import mage.player.ai.score.GameStateEvaluator2;
 import mage.player.ai.selection.SelectionStrategy;
 import mage.player.ai.selection.Ucb1SelectionStrategy;
 import mage.player.ai.util.StateHasher;
@@ -32,7 +30,7 @@ import java.util.stream.Collectors;
  * - Expansion strategy (progressive widening, full expansion, etc.)
  * - State evaluation (heuristic, learned, hybrid)
  * 
- * @author [Enhanced modular implementation]
+ * @author vcommero
  */
 public class ComputerPlayerMCTSRedux extends ComputerPlayer {
 
@@ -40,7 +38,8 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
 
     // Configuration Parameters
     private static final long THINK_TIME_MS = 2000;
-    private static final int MAX_ROLLOUT_DEPTH = 10;
+    private static final int MAX_ROLLOUT_DEPTH = 20;
+    private Integer skillLevelDepth;
     
     // Strategy Configuration Enums
     public enum SimulationStrategy {
@@ -59,7 +58,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
     
     // Active strategies (can be configured)
     private SelectionStrategy selectionStrategy = new Ucb1SelectionStrategy();
-    private SimulationStrategy simulationStrategy = SimulationStrategy.EVALUATION;
+    private SimulationStrategy simulationStrategy = SimulationStrategy.RANDOM_ROLLOUT;
     private ExpansionStrategy expansionStrategy = ExpansionStrategy.PROGRESSIVE;
     
     // Performance tracking
@@ -69,6 +68,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
 
     public ComputerPlayerMCTSRedux(String name, RangeOfInfluence range, int skill) {
         super(name, range);
+        this.skillLevelDepth = MAX_ROLLOUT_DEPTH / 10 * skill;
     }
 
     protected ComputerPlayerMCTSRedux(UUID id) {
@@ -303,10 +303,11 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
         ActivatedAbility actionToExpand = selectActionWithHeuristic(node.getUnexploredActions(), game);
         
         // Apply action and create child
-        applyActionToGame(actionToExpand, game);
+        Game childGame = game.createSimulationForAI();
+        applyActionToGame(actionToExpand, childGame);
         
-        List<ActivatedAbility> childActions = getFilteredActions(game);
-        long stateHash = StateHasher.computeStateHash(game);
+        List<ActivatedAbility> childActions = getFilteredActions(childGame);
+        long stateHash = StateHasher.computeStateHash(childGame);
         
         // Check transposition table
         MCTSReduxNode cachedNode = transpositionTable.get(stateHash);
@@ -369,10 +370,11 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
         // TODO: Implement random rollout
         // Play random moves until terminal state or depth limit
         
-        Game simGame = game.copy();
+        Game simGame = game.createSimulationForAI();
         int depth = 0;
         
-        while (!isTerminalState(simGame) && depth < MAX_ROLLOUT_DEPTH) {
+        int rolloutDepth = skillLevelDepth != null ? skillLevelDepth : MAX_ROLLOUT_DEPTH;
+        while (!isTerminalState(simGame) && depth < rolloutDepth) {
             List<ActivatedAbility> actions = getFilteredActions(simGame);
             if (actions.isEmpty()) {
                 break;
@@ -391,10 +393,10 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
      * SKELETON: Direct evaluation simulation
      */
     private double simulateWithEvaluation(MCTSReduxNode node, Game game) {
-        // TODO: Implement evaluation-based simulation
-        // Use heuristic or neural network to evaluate position
+        // Use heuristic or other advanced evaluation to evaluate position
+        throw new UnsupportedOperationException("Evaluation Simulation not yet implemented. Do not use.");
         
-        return evaluateGameState(game, node.getPlayerId());
+        //return evaluateGameState(game, node.getPlayerId());
     }
 
     /**
@@ -404,7 +406,7 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
         // TODO: Implement hybrid approach
         // Do short rollout (3-5 moves) then evaluate
         
-        Game simGame = game.copy();
+        Game simGame = game.createSimulationForAI();
         int shortRolloutDepth = 3;
         
         for (int i = 0; i < shortRolloutDepth; i++) {
@@ -428,10 +430,11 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
         // TODO: Implement heavy rollout
         // Use domain knowledge to guide rollout
         
-        Game simGame = game.copy();
+        Game simGame = game.createSimulationForAI();
         int depth = 0;
         
-        while (!isTerminalState(simGame) && depth < MAX_ROLLOUT_DEPTH) {
+        int rolloutDepth = skillLevelDepth != null ? skillLevelDepth : MAX_ROLLOUT_DEPTH;
+        while (!isTerminalState(simGame) && depth < rolloutDepth) {
             List<ActivatedAbility> actions = getFilteredActions(simGame);
             if (actions.isEmpty()) {
                 break;
@@ -455,46 +458,17 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
      * @return Normalized score [0,1] where 1 is winning
      */
     protected double evaluateGameState(Game game, UUID playerId) {
-        // TODO: Implement sophisticated evaluation
-        // This is the main "scoreNode" function
-        
         Player player = game.getPlayer(playerId);
-        if (player == null || player.hasLost()) {
-            return 0.0;
-        }
-        
-        if (player.hasWon()) {
-            return 1.0;
-        }
-        
-        // Simple placeholder evaluation
-        double score = 0.5; // Neutral position
-        
-        // Life total component
-        score += (player.getLife() - 20) * 0.01;
-        
-        // Card advantage
-        score += player.getHand().size() * 0.02;
-        
-        // Board presence
-        int creatures = game.getBattlefield().countAll(
-            new FilterCreaturePermanent(), playerId, game);
-        score += creatures * 0.03;
-        
-        // Consider opponents
-        for (UUID opponentId : game.getOpponents(playerId)) {
-            Player opponent = game.getPlayer(opponentId);
-            if (opponent != null) {
-                score -= (opponent.getLife() - 20) * 0.01;
-                score -= opponent.getHand().size() * 0.02;
-                int oppCreatures = game.getBattlefield().countAll(
-                    new FilterCreaturePermanent(), opponentId, game);
-                score -= oppCreatures * 0.03;
-            }
-        }
-        
-        // Normalize to [0,1]
-        return Math.max(0.0, Math.min(1.0, score));
+        if (player == null || player.hasLost()) return 0.0;
+        if (player.hasWon()) return 1.0;
+
+        int myScore = GameStateEvaluator2.evaluate(playerId, game).getTotalScore();
+        int opponentScore = game.getOpponents(playerId).stream()
+            .mapToInt(id -> GameStateEvaluator2.evaluate(id, game).getTotalScore())
+            .sum();
+
+        int total = myScore + opponentScore;
+        return total == 0 ? 0.5 : Math.max(0.0, Math.min(1.0, (double) myScore / total));
     }
 
     /**
@@ -743,78 +717,15 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
         simulationsRun = 0;
     }
 
-    // Combat methods remain largely the same but can be refactored similarly...
+    // Combat Methods
 
     @Override
     public void selectAttackers(Game game, UUID attackingPlayerId) {
         if (!attackingPlayerId.equals(getId())) {
             return;
         }
-        
         logger.info("MCTS - Selecting attackers");
-        
-        // Get available attackers
-        List<Permanent> availableAttackers = new ArrayList<>();
-        FilterCreatureForCombat filter = new FilterCreatureForCombat();
-        
-        for (Permanent permanent : game.getBattlefield().getActivePermanents(filter, getId(), game)) {
-            if (permanent.isControlledBy(getId()) && permanent.canAttack(null, game)) {
-                availableAttackers.add(permanent);
-            }
-        }
-        
-        if (availableAttackers.isEmpty()) {
-            return;
-        }
-        
-        // Use evaluation-based approach for combat
-        Map<Permanent, UUID> attacks = selectOptimalAttacks(availableAttackers, game);
-        
-        // Execute attacks
-        for (Map.Entry<Permanent, UUID> entry : attacks.entrySet()) {
-            this.declareAttacker(entry.getKey().getId(), entry.getValue(), game, false);
-            logger.info("MCTS attacking " + getDefenderName(entry.getValue(), game) + 
-                       " with " + entry.getKey().getName());
-        }
-    }
-
-    /**
-     * SKELETON: Select optimal attacks using evaluation
-     */
-    private Map<Permanent, UUID> selectOptimalAttacks(List<Permanent> attackers, Game game) {
-        Map<Permanent, UUID> attacks = new HashMap<>();
-        
-        // Get possible defenders
-        List<UUID> defenders = getValidDefenders(game);
-        if (defenders.isEmpty()) {
-            return attacks;
-        }
-        
-        // Simple greedy approach for now
-        for (Permanent attacker : attackers) {
-            double baseScore = evaluateGameState(game, playerId);
-            UUID bestDefender = null;
-            double bestScore = baseScore;
-            
-            for (UUID defenderId : defenders) {
-                if (attacker.canAttack(defenderId, game)) {
-                    Game simGame = game.copy();
-                    this.declareAttacker(attacker.getId(), defenderId, simGame, false);
-                    double score = evaluateGameState(simGame, playerId);
-                    
-                    if (score > bestScore * 1.1) { // 10% improvement threshold
-                        bestScore = score;
-                        bestDefender = defenderId;
-                    }
-                }
-            }
-            
-            if (bestDefender != null) {
-                attacks.put(attacker, bestDefender);
-            }
-        }
-        
-        return attacks;
+        CombatExecutor.declareAttackers(this, game, attackingPlayerId);
     }
 
     @Override
@@ -822,122 +733,8 @@ public class ComputerPlayerMCTSRedux extends ComputerPlayer {
         if (!defendingPlayerId.equals(getId())) {
             return;
         }
-        
         logger.info("MCTS - Selecting blockers");
-        
-        // Get available blockers
-        List<Permanent> availableBlockers = new ArrayList<>();
-        FilterCreatureForCombat filter = new FilterCreatureForCombat();
-        
-        for (Permanent permanent : game.getBattlefield().getActivePermanents(filter, getId(), game)) {
-            if (permanent.canBlock(null, game)) {
-                availableBlockers.add(permanent);
-            }
-        }
-        
-        if (availableBlockers.isEmpty()) {
-            return;
-        }
-        
-        // Use evaluation-based blocking
-        Map<Permanent, Permanent> blocks = selectOptimalBlocks(availableBlockers, game);
-        
-        // Execute blocks
-        for (Map.Entry<Permanent, Permanent> entry : blocks.entrySet()) {
-            this.declareBlocker(this.getId(), entry.getKey().getId(), 
-                              entry.getValue().getId(), game);
-            logger.info("MCTS blocking " + entry.getValue().getName() + 
-                       " with " + entry.getKey().getName());
-        }
-    }
-
-    /**
-     * SKELETON: Select optimal blocks using evaluation
-     */
-    private Map<Permanent, Permanent> selectOptimalBlocks(List<Permanent> blockers, Game game) {
-        Map<Permanent, Permanent> blocks = new HashMap<>();
-        
-        // Get attackers
-        List<Permanent> attackers = new ArrayList<>();
-        for (UUID attackerId : game.getCombat().getAttackers()) {
-            Permanent attacker = game.getPermanent(attackerId);
-            if (attacker != null) {
-                attackers.add(attacker);
-            }
-        }
-        
-        // Sort by threat level
-        attackers.sort((a1, a2) -> 
-            Integer.compare(a2.getPower().getValue(), a1.getPower().getValue()));
-        
-        List<Permanent> availableBlockers = new ArrayList<>(blockers);
-        
-        for (Permanent attacker : attackers) {
-            Permanent bestBlocker = null;
-            double bestScore = evaluateGameState(game, playerId);
-            
-            for (Permanent blocker : availableBlockers) {
-                if (blocker.canBlock(attacker.getId(), game)) {
-                    Game simGame = game.copy();
-                    this.declareBlocker(this.getId(), blocker.getId(), attacker.getId(), simGame);
-                    double score = evaluateGameState(simGame, playerId);
-                    
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestBlocker = blocker;
-                    }
-                }
-            }
-            
-            if (bestBlocker != null) {
-                blocks.put(bestBlocker, attacker);
-                availableBlockers.remove(bestBlocker);
-            }
-        }
-        
-        return blocks;
-    }
-
-    /**
-     * Helper: Get valid defenders
-     */
-    private List<UUID> getValidDefenders(Game game) {
-        List<UUID> defenders = new ArrayList<>();
-        
-        for (UUID opponentId : game.getOpponents(getId())) {
-            Player opponent = game.getPlayer(opponentId);
-            if (opponent != null && opponent.canBeTargetedBy(null, getId(), null, game)) {
-                defenders.add(opponentId);
-            }
-        }
-        
-        for (Permanent permanent : game.getBattlefield().getAllActivePermanents()) {
-            if (game.getOpponents(getId()).contains(permanent.getControllerId())) {
-                if ((permanent.isPlaneswalker(game) || permanent.isBattle(game)) &&
-                    permanent.canBeTargetedBy(null, getId(), null, game)) {
-                    defenders.add(permanent.getId());
-                }
-            }
-        }
-        
-        return defenders;
-    }
-
-    /**
-     * Helper: Get defender name
-     */
-    private String getDefenderName(UUID defenderId, Game game) {
-        Player player = game.getPlayer(defenderId);
-        if (player != null) {
-            return player.getName();
-        }
-        
-        Permanent permanent = game.getPermanent(defenderId);
-        if (permanent != null) {
-            return permanent.getName();
-        }
-        
-        return "Unknown";
+        CombatExecutor.declareBlockers(this, source, game, defendingPlayerId);
     }
 
     /**
